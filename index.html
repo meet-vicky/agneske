@@ -1,0 +1,759 @@
+<title>Agnes'ke</title>
+<style>
+/* Layout: one centered column. A start screen with a daily challenge and five games; each game opens with a level choice. */
+/* Palette: warm paper, deep green accent. Type: system UI for reliable reading on any phone. */
+:root{
+  --bg:#f5f4ef; --fg:#1c1e22; --muted:#666a73; --card:#ffffff; --line:#dedbd1;
+  --accent:#2d6a59; --accent-fg:#ffffff; --ok:#2b7a4b; --bad:#b03a2e; --tile:#e9e6dc;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171b; --fg:#ecebe6; --muted:#9ea3ab; --card:#1e2127; --line:#2d3139;
+    --accent:#7cc3ac; --accent-fg:#10231d; --ok:#6fcf97; --bad:#f08a7e; --tile:#2a2e36;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171b; --fg:#ecebe6; --muted:#9ea3ab; --card:#1e2127; --line:#2d3139;
+  --accent:#7cc3ac; --accent-fg:#10231d; --ok:#6fcf97; --bad:#f08a7e; --tile:#2a2e36;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:0 16px; background:var(--bg); color:var(--fg);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+main{max-width:520px; margin:0 auto; padding-block:20px 32px}
+header{display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:48px}
+h1{font-size:1.5rem; margin:0; text-wrap:balance}
+h2{font-size:1.2rem; margin:0 0 4px; text-wrap:balance}
+p{margin:0 0 12px}
+.muted{color:var(--muted); font-size:.92rem}
+.stack{display:grid; gap:12px; margin-top:16px}
+.card{
+  display:block; width:100%; text-align:left; background:var(--card); color:var(--fg);
+  border:1px solid var(--line); border-radius:14px; padding:16px; cursor:pointer;
+  font:inherit;
+}
+.card.daily{border-color:var(--accent)}
+.card:focus-visible,button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.card .best{color:var(--muted); font-size:.88rem; margin-top:6px}
+.btn{
+  background:var(--accent); color:var(--accent-fg); border:0; border-radius:12px;
+  padding:12px 18px; font:inherit; font-weight:600; cursor:pointer; min-height:48px;
+}
+.btn.ghost{background:transparent; color:var(--accent); border:1px solid var(--line)}
+.btn:disabled{opacity:.5; cursor:default}
+.row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.stat{font-variant-numeric:tabular-nums; font-weight:600}
+.grid{display:grid; gap:10px; margin-top:12px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.tile{
+  aspect-ratio:1/1; min-width:0; border-radius:12px; border:1px solid var(--line);
+  background:var(--tile); color:var(--fg); cursor:pointer; font:inherit; font-size:1.6rem;
+}
+.tile.up{background:var(--card)}
+.tile.done{background:var(--accent); color:var(--accent-fg); border-color:var(--accent); opacity:.85}
+.tile.lit{background:var(--accent); border-color:var(--accent)}
+.big{font-size:2.2rem; font-weight:700; text-align:center; margin:18px 0; font-variant-numeric:tabular-nums; min-height:1.3em}
+.answer{
+  width:100%; font:inherit; font-size:1.2rem; padding:12px; border-radius:12px;
+  border:1px solid var(--line); background:var(--card); color:var(--fg); min-height:48px;
+}
+.feedback{min-height:1.4em; font-weight:600; margin-top:8px}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+.opt{font-size:1.1rem; min-height:56px}
+.word{letter-spacing:.3em; text-transform:uppercase; font-size:1.8rem; font-weight:700; text-align:center; margin:18px 0}
+.panel{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:16px}
+.howto{background:var(--tile); border-radius:12px; padding:10px 14px; font-size:.95rem; margin:8px 0 0}
+.timer{height:6px; border-radius:3px; background:var(--tile); margin-top:12px; overflow:hidden}
+.timer > div{height:100%; width:100%; background:var(--accent); transform-origin:left}
+.share-text{font-size:.95rem; color:var(--muted); margin-top:10px; user-select:all}
+.sky{position:relative; height:360px; overflow:hidden; border-radius:14px; background:var(--card); border:1px solid var(--line); margin-top:12px}
+.balloon{position:absolute; bottom:-70px; width:52px; height:64px; padding:0; border:0; border-radius:50% 50% 48% 48%; cursor:pointer; animation-name:rise; animation-timing-function:linear; animation-fill-mode:forwards}
+.balloon.pop{opacity:0; transition:opacity .15s}
+@keyframes rise{from{transform:translateY(0)} to{transform:translateY(-500px)}}
+.chip{min-height:52px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--fg); font:inherit; font-size:1.1rem; padding:10px; cursor:pointer; text-align:center; min-width:0; overflow-wrap:anywhere}
+.chip.sel{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.chip.good{background:var(--ok); color:#fff; border-color:var(--ok)}
+.chip.wrong{background:var(--bad); color:#fff; border-color:var(--bad)}
+.chip.miss{border:2px dashed var(--ok)}
+.scene{width:100%; height:auto; display:block; border-radius:12px; border:1px solid var(--line); cursor:crosshair}
+footer{margin-top:28px; color:var(--muted); font-size:.85rem}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<main>
+  <header>
+    <h1>Agnes'ke</h1>
+    <div class="row">
+      <button id="sound" class="btn ghost" aria-pressed="true">Geluid aan</button>
+      <button id="home" class="btn ghost" hidden>Menu</button>
+    </div>
+  </header>
+  <p class="muted">Korte spelletjes om alert te blijven. Gratis, zonder account.</p>
+
+  <section id="menu" class="stack"></section>
+  <section id="stage" hidden></section>
+
+  <footer>
+    Je beste scores blijven alleen in deze browser staan. We verzamelen geen gegevens over je.
+    Dit zijn spelletjes, geen medische behandeling of belofte over je geheugen.
+  </footer>
+</main>
+
+<script>
+(function(){
+  const KEY = 'hersenspel-v3';
+  const SOUND_KEY = 'hersenspel-sound';
+  const $ = id => document.getElementById(id);
+
+  /* ---------- opslag (fouten worden stil opgevangen) ---------- */
+  function store(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ return {}; } }
+  function put(d){ try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(e){} }
+  function saveScore(game, level, value, mode){
+    const d = store(); const k = game + ':' + level; const prev = d[k];
+    const better = prev == null || (mode === 'max' ? value > prev : value < prev);
+    if(better){ d[k] = value; put(d); }
+  }
+
+  /* ---------- geluid aan of uit (onthouden in de browser) ---------- */
+  let soundOn = true;
+  try{ soundOn = localStorage.getItem(SOUND_KEY) !== 'uit'; }catch(e){}
+  function setSoundBtn(){ const b = $('sound'); b.textContent = soundOn ? 'Geluid aan' : 'Geluid uit'; b.setAttribute('aria-pressed', String(soundOn)); }
+  $('sound').onclick = () => {
+    soundOn = !soundOn;
+    try{ localStorage.setItem(SOUND_KEY, soundOn ? 'aan' : 'uit'); }catch(e){}
+    setSoundBtn();
+  };
+  setSoundBtn();
+  let audio = null;
+  function beep(ok){
+    if(!soundOn) return;
+    try{
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if(audio.state === 'suspended') audio.resume();
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = ok ? 660 : 180; g.gain.value = .2;
+      o.connect(g); g.connect(audio.destination);
+      o.start(); o.stop(audio.currentTime + (ok ? .12 : .25));
+    }catch(e){}
+    if(!ok){ try{ navigator.vibrate && navigator.vibrate(60); }catch(e){} }
+  }
+
+  /* ---------- willekeurig: gewoon, of vast per dag voor de dagelijkse uitdaging ---------- */
+  let rng = Math.random;
+  function rand(){ return rng(); }
+  function seeded(seed){
+    let s = seed >>> 0;
+    return function(){
+      s = (s + 0x6D2B79F5) >>> 0; let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+  function pick(a){ return a[Math.floor(rand()*a.length)]; }
+  function randInt(min,max){ return min + Math.floor(rand()*(max-min+1)); }
+  function todayKey(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function dayNumber(key){ return Number(key.replace(/-/g,'')); }
+
+  /* ---------- niveaus ---------- */
+  const LEVELS = [
+    { id:'makkelijk', name:'Makkelijk', desc:'Rustig tempo en eenvoudige opdrachten.' },
+    { id:'normaal',   name:'Normaal',   desc:'De standaard uitdaging.' },
+    { id:'moeilijk',  name:'Moeilijk',  desc:'Meer kaarten, langere woorden, minder hulp.' }
+  ];
+  const levelName = id => LEVELS.find(l => l.id === id).name;
+
+  /* ---------- spellen ---------- */
+  const GAMES = [
+    { id:'geheugen', title:'Geheugenkaarten', desc:'Zoek de paartjes.', how:'Tik op twee kaarten. Zijn ze gelijk, dan blijven ze open. Probeer met zo weinig mogelijk zetten.', mode:'min', unit:'zetten', start:playMemory },
+    { id:'woorden',  title:'Woordpuzzel',     desc:'Vind het woord.', how:'De letters staan door elkaar. Zet ze in de juiste volgorde en typ het woord.', mode:'max', unit:'goed', start:playWords },
+    { id:'rekenen',  title:'Snel rekenen',    desc:'Tien sommen in je hoofd.', how:'Reken de som uit en typ het antwoord. Druk op Enter of Controleer.', mode:'max', unit:'goed', start:playMath },
+    { id:'patroon',  title:'Patronen',        desc:'Welk getal ontbreekt?', how:'Kijk naar de reeks. Welk getal hoort op het vraagteken?', mode:'max', unit:'goed', start:playPattern },
+    { id:'kleuren',  title:'Kleurenspel',     desc:'Tik op de kleur van de inkt.', how:'Het woord zegt een kleur, maar de letters hebben een andere kleur. Tik op de kleur van de letters.', mode:'max', unit:'goed', start:playColors },
+    { id:'reactie',  title:'Reactiespel',     desc:'Tik zo snel mogelijk.', how:'Een vakje licht op. Tik er snel op voordat het weer uitgaat.', mode:'max', unit:'goed', start:playReaction },
+    { id:'ballonnen', title:'Ballonnen',       desc:'Knap de ballonnen voordat ze wegvliegen.', how:'Er stijgen ballonnen op. Tik erop voordat ze uit beeld zijn. Een ballon die wegvliegt, telt als gemist.', mode:'max', unit:'geknapt', start:playBalloons },
+    { id:'woordgeheugen', title:'Woordgeheugen', desc:'Onthoud de woorden en tik ze aan.', how:'Eerst zie je een paar woorden. Daarna verdwijnen ze. Tik de woorden aan die je zag, uit een lijst met ook nieuwe woorden.', mode:'max', unit:'goed', start:playWordMemory },
+    { id:'verschillen', title:'Zoek de verschillen', desc:'Vind de verschillen tussen twee plaatjes.', how:'Links en rechts staan twee plaatjes. Rechts is iets anders: er ontbreekt iets, iets heeft een andere kleur of grootte, of er staat iets extra. Tik op het verschil in het rechterplaatje.', mode:'max', unit:'verschillen', start:playSpot }
+  ];
+
+  /* ---------- startscherm ---------- */
+  function renderMenu(){
+    const scores = store();
+    const menu = $('menu'); menu.innerHTML = '';
+
+    // dagelijkse uitdaging: zelfde spel en puzzel voor iedereen op dezelfde dag
+    const day = todayKey();
+    const dgame = GAMES[dayNumber(day) % GAMES.length];
+    const doneToday = scores['daily:' + day];
+    const dcard = document.createElement('button');
+    dcard.className = 'card daily';
+    dcard.innerHTML = '<h2>Dagelijkse uitdaging</h2><p class="muted"></p><div class="best"></div>';
+    dcard.querySelector('p').textContent = dgame.title + ', niveau normaal. Dezelfde puzzel voor iedereen vandaag.';
+    dcard.querySelector('.best').textContent = doneToday == null ? 'Nog niet gespeeld vandaag' : 'Vandaag gehaald: ' + doneToday + ' ' + dgame.unit;
+    dcard.onclick = () => startDaily(dgame, day);
+    menu.appendChild(dcard);
+
+    GAMES.forEach(g => {
+      const b = document.createElement('button');
+      b.className = 'card';
+      b.innerHTML = '<h2></h2><p class="muted"></p><div class="best"></div>';
+      b.querySelector('h2').textContent = g.title;
+      b.querySelector('p').textContent = g.desc;
+      const parts = LEVELS.map(l => {
+        const v = scores[g.id + ':' + l.id];
+        return l.name + ': ' + (v == null ? '–' : v);
+      });
+      b.querySelector('.best').textContent = 'Beste score · ' + parts.join(' · ');
+      b.onclick = () => openGame(g);
+      menu.appendChild(b);
+    });
+  }
+
+  function showStage(){
+    $('menu').hidden = true; $('stage').hidden = false; $('home').hidden = false;
+    $('stage').innerHTML = ''; window.scrollTo(0,0);
+  }
+  function openGame(g){
+    showStage();
+    const stage = $('stage');
+    const scores = store();
+    const head = document.createElement('div');
+    head.innerHTML = '<h2></h2><p class="howto"></p><p class="muted" style="margin-top:12px">Kies een niveau.</p><div class="stack" id="lvls"></div>';
+    head.querySelector('h2').textContent = g.title;
+    head.querySelector('.howto').textContent = g.how;
+    stage.appendChild(head);
+    LEVELS.forEach(l => {
+      const b = document.createElement('button');
+      b.className = 'card';
+      b.innerHTML = '<h2></h2><p class="muted"></p><div class="best"></div>';
+      b.querySelector('h2').textContent = l.name;
+      b.querySelector('p').textContent = l.desc;
+      const v = scores[g.id + ':' + l.id];
+      b.querySelector('.best').textContent = 'Beste score: ' + (v == null ? 'nog niet gespeeld' : v + ' ' + g.unit);
+      b.onclick = () => startLevel(g, l.id, null);
+      head.querySelector('#lvls').appendChild(b);
+    });
+  }
+  function startLevel(g, level, daily){
+    $('stage').innerHTML = '';
+    rng = daily ? seeded(dayNumber(daily.day) * 31 + GAMES.indexOf(g)) : Math.random;
+    g.start($('stage'), g, level, daily);
+    window.scrollTo(0,0);
+  }
+  function startDaily(g, day){
+    showStage();
+    startLevel(g, 'normaal', { day });
+  }
+  function goHome(){
+    $('stage').hidden = true; $('stage').innerHTML = '';
+    $('menu').hidden = false; $('home').hidden = true;
+    renderMenu();
+  }
+  $('home').onclick = goHome;
+
+  /* ---------- uitslag, met deelknop ---------- */
+  function resultPanel(root, g, level, value, total, daily){
+    const p = document.createElement('div'); p.className = 'panel';
+    p.innerHTML = '<h2>Klaar!</h2><p class="big"></p><div class="row"><button class="btn">Opnieuw</button><button class="btn ghost">Menu</button></div>'
+      + '<div class="row" style="margin-top:12px"><button class="btn ghost">Deel mijn score</button></div><div class="share-text" hidden></div>';
+    const score = total != null ? value + ' / ' + total : value + ' ' + g.unit;
+    p.querySelector('.big').textContent = score;
+    const [again, menuBtn] = p.querySelectorAll('.row')[0].querySelectorAll('button');
+    const shareBtn = p.querySelectorAll('.row')[1].querySelector('button');
+    const shareBox = p.querySelector('.share-text');
+    again.onclick = () => startLevel(g, level, null);
+    menuBtn.onclick = goHome;
+    shareBtn.onclick = () => {
+      const label = daily ? 'Dagelijkse uitdaging ' + daily.day : levelName(level);
+      const text = "Agnes'ke · " + g.title + ' · ' + label + ': ' + score;
+      shareBox.hidden = false; shareBox.textContent = text;
+      try{
+        navigator.clipboard.writeText(text).then(
+          () => { shareBtn.textContent = 'Gekopieerd'; },
+          () => { shareBtn.textContent = 'Selecteer de tekst hieronder'; }
+        );
+      }catch(e){ shareBtn.textContent = 'Selecteer de tekst hieronder'; }
+    };
+    root.appendChild(p);
+  }
+
+  /* finish: bewaar de score en toon de uitslag. Bij de dagelijkse uitdaging ook de dagscore. */
+  function finish(root, g, level, value, total, daily){
+    saveScore(g.id, level, value, g.mode);
+    if(daily) saveScore('daily', daily.day, value, 'max');
+    resultPanel(root, g, level, value, total, daily);
+  }
+
+  /* 1. Geheugenkaarten */
+  function playMemory(root, g, level, daily){
+    const cfg = {
+      makkelijk: { pairs:3, cols:'g3', flip:1200 },
+      normaal:   { pairs:6, cols:'g4', flip:800 },
+      moeilijk:  { pairs:8, cols:'g4', flip:500 }
+    }[level];
+    const syms = ['▲','●','■','◆','★','✚','♥','☀'].slice(0, cfg.pairs);
+    const deck = shuffle([...syms, ...syms]);
+    let open = [], matched = new Set(), moves = 0, lock = false;
+    root.innerHTML = '<div class="row"><span class="stat">Niveau ' + levelName(level) + '</span><span class="stat" id="mv">Zetten: 0</span></div><div class="grid ' + cfg.cols + '" id="gr"></div>';
+    const gr = $('gr');
+    deck.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.className = 'tile';
+      b.setAttribute('aria-label', 'Kaart ' + (i+1) + ', verborgen');
+      b.onclick = () => flip(i, b, s);
+      gr.appendChild(b);
+    });
+    function flip(i, b, s){
+      if(lock || matched.has(i) || open.some(o => o.i === i)) return;
+      b.textContent = s; b.classList.add('up'); open.push({i, b, s});
+      if(open.length < 2) return;
+      moves++; $('mv').textContent = 'Zetten: ' + moves; lock = true;
+      const [a, c] = open;
+      if(a.s === c.s){
+        beep(true);
+        matched.add(a.i); matched.add(c.i);
+        a.b.classList.add('done'); c.b.classList.add('done');
+        open = []; lock = false;
+        if(matched.size === deck.length) finish(root, g, level, moves, null, daily);
+      } else {
+        beep(false);
+        setTimeout(() => {
+          a.b.textContent = ''; c.b.textContent = '';
+          a.b.classList.remove('up'); c.b.classList.remove('up');
+          open = []; lock = false;
+        }, cfg.flip);
+      }
+    }
+  }
+
+  /* 2. Woordpuzzel */
+  const WORDS = ['huis','boom','zon','fiets','appel','tafel','melk','wolk','stoel','bloem','regen','brood','vogel','hond','kat',
+    'school','kikker','konijn','wortel','paraplu','verhaal','voetbal','kasteel','pinguïn',
+    'zonnebloem','televisie','krokodil','vliegtuig','bibliotheek','aardappel','ziekenhuis','schoolplein','tandarts'];
+  function playWords(root, g, level, daily){
+    const rules = {
+      makkelijk: w => w.length <= 5,
+      normaal:   w => w.length >= 6 && w.length <= 7,
+      moeilijk:  w => w.length >= 8
+    };
+    const rounds = 8;
+    const pool = WORDS.filter(rules[level]);
+    const order = shuffle(pool).slice(0, Math.min(rounds, pool.length));
+    let i = 0, score = 0;
+    const total = order.length;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="word" id="sc"></div>'
+      + '<input class="answer" id="ans" autocomplete="off" autocapitalize="none" aria-label="Jouw antwoord">'
+      + '<div class="row" style="margin-top:12px"><button class="btn" id="ok">Controleer</button>'
+      + (level === 'moeilijk' ? '' : '<button class="btn ghost" id="hint">Hint</button>') + '</div>'
+      + '<div class="feedback" id="fb"></div>';
+    function scramble(w){
+      let s; do { s = shuffle(w.split('')).join(''); } while(s === w && w.length > 1);
+      return s;
+    }
+    function show(){
+      $('pr').textContent = 'Woord ' + (i+1) + ' van ' + total + ' · goed: ' + score;
+      $('sc').textContent = scramble(order[i]);
+      $('ans').value = ''; $('fb').textContent = ''; $('ans').focus();
+    }
+    function check(){
+      const guess = $('ans').value.trim().toLowerCase();
+      if(!guess) return;
+      if(guess === order[i]){ score++; beep(true); $('fb').className = 'feedback ok'; $('fb').textContent = 'Goed!'; }
+      else { beep(false); $('fb').className = 'feedback bad'; $('fb').textContent = 'Het was: ' + order[i]; }
+      i++;
+      setTimeout(() => { if(i >= total) finish(root, g, level, score, total, daily); else show(); }, 900);
+      $('ans').value = '';
+    }
+    $('ok').onclick = check;
+    $('ans').addEventListener('keydown', e => { if(e.key === 'Enter') check(); });
+    const hint = $('hint');
+    if(hint) hint.onclick = () => {
+      const w = order[i];
+      $('fb').className = 'feedback';
+      $('fb').textContent = level === 'makkelijk'
+        ? 'Begin met de letter ' + w[0] + ' (' + w.length + ' letters).'
+        : 'Begin met de letter ' + w[0] + '.';
+    };
+    show();
+  }
+
+  /* 3. Snel rekenen */
+  function playMath(root, g, level, daily){
+    const total = 10; let i = 0, score = 0, q;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="big" id="sum"></div>'
+      + '<input class="answer" id="ans" inputmode="numeric" autocomplete="off" aria-label="Jouw antwoord">'
+      + '<div class="row" style="margin-top:12px"><button class="btn" id="ok">Controleer</button></div>'
+      + '<div class="feedback" id="fb"></div>';
+    function make(){
+      if(level === 'makkelijk'){
+        const a = randInt(1, 10), b = randInt(1, 10);
+        if(rand() < .5) return { text: a + ' + ' + b, ans: a + b };
+        const hi = Math.max(a,b), lo = Math.min(a,b);
+        return { text: hi + ' − ' + lo, ans: hi - lo };
+      }
+      if(level === 'normaal'){
+        const a = randInt(2, 20), b = randInt(2, 20);
+        if(rand() < .5) return { text: a + ' + ' + b, ans: a + b };
+        const hi = Math.max(a,b), lo = Math.min(a,b);
+        return { text: hi + ' − ' + lo, ans: hi - lo };
+      }
+      const kind = pick(['add','sub','mul']);
+      if(kind === 'mul'){ const a = randInt(2, 10), b = randInt(2, 10); return { text: a + ' × ' + b, ans: a * b }; }
+      const a = randInt(10, 99), b = randInt(10, 99);
+      if(kind === 'add') return { text: a + ' + ' + b, ans: a + b };
+      const hi = Math.max(a,b), lo = Math.min(a,b);
+      return { text: hi + ' − ' + lo, ans: hi - lo };
+    }
+    function show(){ q = make(); $('pr').textContent = 'Som ' + (i+1) + ' van ' + total + ' · goed: ' + score; $('sum').textContent = q.text + ' = ?'; $('ans').value=''; $('fb').textContent=''; $('ans').focus(); }
+    function check(){
+      if($('ans').value.trim() === '') return;
+      const v = Number($('ans').value.trim());
+      if(v === q.ans){ score++; beep(true); $('fb').className='feedback ok'; $('fb').textContent='Goed!'; }
+      else { beep(false); $('fb').className='feedback bad'; $('fb').textContent='Het antwoord was ' + q.ans + '.'; }
+      i++;
+      setTimeout(() => { if(i >= total) finish(root, g, level, score, total, daily); else show(); }, 800);
+      $('ans').value = '';
+    }
+    $('ok').onclick = check;
+    $('ans').addEventListener('keydown', e => { if(e.key === 'Enter') check(); });
+    show();
+  }
+
+  /* 4. Patronen */
+  function playPattern(root, g, level, daily){
+    const total = 8; let i = 0, score = 0;
+    const cfg = {
+      makkelijk: { start:[1,10],  step:[1,3],  len:4, spread:2 },
+      normaal:   { start:[1,20],  step:[1,6],  len:4, spread:3 },
+      moeilijk:  { start:[5,50],  step:[3,12], len:5, spread:5 }
+    }[level];
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="big" id="seq"></div><div class="grid g3" id="opts"></div>'
+      + '<div class="feedback" id="fb"></div>';
+    function make(){
+      const start = randInt(...cfg.start), step = randInt(...cfg.step);
+      const seq = Array.from({length: cfg.len}, (_, k) => start + k*step);
+      const missing = randInt(1, cfg.len - 1);
+      const answer = seq[missing];
+      const shown = seq.map((n, k) => k === missing ? '?' : n).join(' , ');
+      const opts = new Set([answer]);
+      while(opts.size < 3){ const d = randInt(-cfg.spread, cfg.spread); if(d !== 0 && answer + d > 0) opts.add(answer + d); }
+      return { shown, answer, opts: shuffle([...opts]) };
+    }
+    function show(){
+      const q = make();
+      $('pr').textContent = 'Reeks ' + (i+1) + ' van ' + total + ' · goed: ' + score;
+      $('seq').textContent = q.shown;
+      $('fb').textContent = '';
+      const box = $('opts'); box.innerHTML = '';
+      q.opts.forEach(n => {
+        const b = document.createElement('button');
+        b.className = 'btn ghost opt'; b.textContent = n;
+        b.onclick = () => answer(n === q.answer, q.answer, box);
+        box.appendChild(b);
+      });
+    }
+    function answer(correct, real, box){
+      [...box.children].forEach(b => b.disabled = true);
+      if(correct){ score++; beep(true); $('fb').className='feedback ok'; $('fb').textContent='Goed!'; }
+      else { beep(false); $('fb').className='feedback bad'; $('fb').textContent='Het juiste getal was ' + real + '.'; }
+      i++;
+      setTimeout(() => { if(i >= total) finish(root, g, level, score, total, daily); else show(); }, 900);
+    }
+    show();
+  }
+
+  /* 5. Kleurenspel */
+  function playColors(root, g, level, daily){
+    const allColors = [
+      { name:'ROOD',   css:'#d0473c' },
+      { name:'BLAUW',  css:'#2f6fd6' },
+      { name:'GROEN',  css:'#2b8a4b' },
+      { name:'GEEL',   css:'#b98a00' }
+    ];
+    const colors = level === 'makkelijk' ? allColors.slice(0, 3) : allColors;
+    const perRound = level === 'moeilijk' ? 3000 : 0;
+    const total = 10; let i = 0, score = 0, t = null, done = false;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="word" id="w"></div>'
+      + (perRound ? '<div class="timer"><div id="bar"></div></div>' : '')
+      + '<div class="grid g2" id="opts"></div>'
+      + '<div class="feedback" id="fb"></div>';
+    function show(){
+      done = false;
+      const word = pick(colors);
+      let ink; do { ink = pick(colors); } while(ink === word);
+      $('pr').textContent = 'Ronde ' + (i+1) + ' van ' + total + ' · goed: ' + score;
+      const w = $('w'); w.textContent = word.name; w.style.color = ink.css;
+      $('fb').textContent = '';
+      const box = $('opts'); box.innerHTML = '';
+      shuffle(colors).forEach(c => {
+        const b = document.createElement('button');
+        b.className = 'btn ghost opt'; b.textContent = c.name;
+        b.onclick = () => answer(c === ink, ink, box, false);
+        box.appendChild(b);
+      });
+      if(perRound){
+        const bar = $('bar');
+        bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)';
+        requestAnimationFrame(() => { bar.style.transition = 'transform ' + perRound + 'ms linear'; bar.style.transform = 'scaleX(0)'; });
+        t = setTimeout(() => { if(!done) answer(false, ink, box, true); }, perRound);
+      }
+    }
+    function answer(correct, ink, box, timeout){
+      if(done) return;
+      done = true; clearTimeout(t);
+      [...box.children].forEach(b => b.disabled = true);
+      if(correct){ score++; beep(true); $('fb').className='feedback ok'; $('fb').textContent='Goed!'; }
+      else if(timeout){ beep(false); $('fb').className='feedback bad'; $('fb').textContent='Te laat. De inkt was ' + ink.name + '.'; }
+      else { beep(false); $('fb').className='feedback bad'; $('fb').textContent='De inkt was ' + ink.name + '.'; }
+      i++;
+      setTimeout(() => { if(i >= total) finish(root, g, level, score, total, daily); else show(); }, 800);
+    }
+    show();
+  }
+
+  /* 6. Reactiespel: een vakje licht op, tik er snel op. Makkelijk 2 seconden, normaal 1,2, moeilijk 0,8. */
+  function playReaction(root, g, level, daily){
+    const windowMs = { makkelijk:2000, normaal:1200, moeilijk:800 }[level];
+    const total = 10; let i = 0, score = 0, lit = -1, timer = null, wait = null, busy = false;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="grid g3" id="gr"></div>'
+      + '<div class="feedback" id="fb">Wacht tot een vakje oplicht.</div>';
+    const gr = $('gr');
+    for(let k = 0; k < 9; k++){
+      const b = document.createElement('button');
+      b.className = 'tile'; b.setAttribute('aria-label', 'Vakje ' + (k+1));
+      b.onclick = () => tap(k);
+      gr.appendChild(b);
+    }
+    function tiles(){ return [...gr.children]; }
+    function clearLit(){ tiles().forEach(t => t.classList.remove('lit')); }
+    function next(){
+      busy = false; clearLit(); lit = -1;
+      $('pr').textContent = 'Ronde ' + (i+1) + ' van ' + total + ' · goed: ' + score;
+      wait = setTimeout(() => {
+        lit = randInt(0, 8);
+        tiles()[lit].classList.add('lit');
+        timer = setTimeout(() => miss(), windowMs);
+      }, randInt(600, 1500));
+    }
+    function miss(){
+      if(lit < 0) return;
+      lit = -1; clearLit(); beep(false); busy = true;
+      $('fb').className = 'feedback bad'; $('fb').textContent = 'Te laat.';
+      advance();
+    }
+    function tap(k){
+      if(busy) return;
+      if(lit < 0){ // te vroeg getikt
+        clearTimeout(wait); beep(false);
+        $('fb').className = 'feedback bad'; $('fb').textContent = 'Te vroeg. Wacht tot een vakje oplicht.';
+        i++; advanceQuick(); return;
+      }
+      clearTimeout(timer);
+      if(k === lit){ score++; beep(true); $('fb').className = 'feedback ok'; $('fb').textContent = 'Raak!'; }
+      else { beep(false); $('fb').className = 'feedback bad'; $('fb').textContent = 'Naast het vakje.'; }
+      lit = -1; clearLit();
+      advance();
+    }
+    function advance(){
+      busy = true; i++;
+      setTimeout(() => { if(i >= total) finish(root, g, level, score, total, daily); else next(); }, 700);
+    }
+    function advanceQuick(){
+      busy = true;
+      setTimeout(() => { if(i >= total) finish(root, g, level, score, total, daily); else next(); }, 900);
+    }
+    next();
+  }
+
+  /* 7. Ballonnen: ballonnen stijgen op, tik ze voordat ze uit beeld zijn. Makkelijk traag en weinig, moeilijk snel en veel. */
+  function playBalloons(root, g, level, daily){
+    const cfg = {
+      makkelijk: { total:10, every:1400, rise:[3200, 4000] },
+      normaal:   { total:15, every:1000, rise:[2400, 3200] },
+      moeilijk:  { total:20, every:700,  rise:[1500, 2200] }
+    }[level];
+    const colors = ['#e07a5f','#3d8b7a','#e0b04f','#7a9e6a','#7b6d8d'];
+    let spawned = 0, popped = 0, handled = 0, finished = false;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div><div class="sky" id="sky"></div>'
+      + '<div class="feedback" id="fb">Tik op de ballonnen voordat ze wegvliegen.</div>';
+    const sky = $('sky');
+    function update(){ $('pr').textContent = 'Geknapt: ' + popped + ' · gemist: ' + (handled - popped) + ' · van ' + cfg.total; }
+    function count(){
+      handled++; update();
+      if(handled >= cfg.total && !finished){
+        finished = true;
+        setTimeout(() => finish(root, g, level, popped, cfg.total, daily), 400);
+      }
+    }
+    function spawn(){
+      const b = document.createElement('button');
+      b.className = 'balloon';
+      b.setAttribute('aria-label', 'Ballon');
+      b.style.left = (5 + rand() * 80) + '%';
+      b.style.background = pick(colors);
+      b.style.animationDuration = randInt(cfg.rise[0], cfg.rise[1]) + 'ms';
+      let done = false;
+      b.onclick = () => {
+        if(done) return; done = true;
+        popped++; beep(true); b.classList.add('pop');
+        setTimeout(() => b.remove(), 160);
+        count();
+      };
+      b.addEventListener('animationend', () => {
+        if(done) return; done = true;
+        beep(false); b.remove(); count();
+      });
+      sky.appendChild(b);
+      spawned++;
+    }
+    update();
+    const iv = setInterval(() => {
+      if(!root.isConnected){ clearInterval(iv); return; }
+      if(spawned < cfg.total) spawn(); else clearInterval(iv);
+    }, cfg.every);
+    spawn();
+  }
+
+  /* 8. Woordgeheugen: woorden verschijnen, verdwijnen, daarna kies je de woorden die je zag. */
+  function playWordMemory(root, g, level, daily){
+    const cfg = {
+      makkelijk: { n:3, show:6000 },
+      normaal:   { n:5, show:5000 },
+      moeilijk:  { n:7, show:4000 }
+    }[level];
+    const rounds = 3;
+    let r = 0, score = 0, maxScore = 0;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div><div id="area"></div><div class="feedback" id="fb"></div>';
+    function startRound(){
+      const pool = shuffle(WORDS);
+      const real = pool.slice(0, cfg.n);
+      const fake = pool.slice(cfg.n, cfg.n * 2);
+      const list = shuffle([...real, ...fake]);
+      maxScore += cfg.n;
+      $('pr').textContent = 'Ronde ' + (r+1) + ' van ' + rounds + ' · goed: ' + score;
+      $('fb').textContent = '';
+      $('area').innerHTML = '<p class="muted">Onthoud deze woorden.</p><div class="grid g2" id="show"></div><div class="timer"><div id="bar"></div></div>';
+      real.forEach(w => { const d = document.createElement('div'); d.className = 'chip'; d.textContent = w; $('show').appendChild(d); });
+      const bar = $('bar'); bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)';
+      requestAnimationFrame(() => { bar.style.transition = 'transform ' + cfg.show + 'ms linear'; bar.style.transform = 'scaleX(0)'; });
+      setTimeout(() => ask(real, list), cfg.show);
+    }
+    function ask(real, list){
+      $('area').innerHTML = '<p class="muted">Welke woorden zag je? Tik ze aan en druk op Klaar.</p><div class="grid g2" id="pick"></div><div class="row" style="margin-top:12px"><button class="btn" id="check">Klaar</button></div>';
+      const box = $('pick'); const selected = new Set();
+      list.forEach(w => {
+        const c = document.createElement('button');
+        c.className = 'chip'; c.textContent = w; c.dataset.w = w;
+        c.onclick = () => {
+          if(selected.has(w)){ selected.delete(w); c.classList.remove('sel'); }
+          else { selected.add(w); c.classList.add('sel'); }
+        };
+        box.appendChild(c);
+      });
+      $('check').onclick = () => {
+        let good = 0, wrong = 0;
+        [...box.children].forEach(c => {
+          const w = c.dataset.w, isReal = real.includes(w), picked = selected.has(w);
+          c.disabled = true; c.classList.remove('sel');
+          if(isReal && picked){ c.classList.add('good'); good++; }
+          else if(!isReal && picked){ c.classList.add('wrong'); wrong++; }
+          else if(isReal && !picked){ c.classList.add('miss'); }
+        });
+        score += Math.max(0, good - wrong);
+        beep(wrong === 0);
+        $('check').disabled = true;
+        $('fb').className = 'feedback ' + (wrong === 0 && good === real.length ? 'ok' : 'bad');
+        $('fb').textContent = good + ' van de ' + real.length + ' goed' + (wrong ? ', ' + wrong + ' fout' : '') + '.';
+        r++;
+        setTimeout(() => { if(r >= rounds) finish(root, g, level, score, maxScore, daily); else startRound(); }, 1800);
+      };
+    }
+    startRound();
+  }
+
+  /* 9. Zoek de verschillen: twee getekende plaatjes, rechts zijn er een paar dingen anders. */
+  function playSpot(root, g, level, daily){
+    const cfg = { makkelijk:{ n:6, d:3 }, normaal:{ n:9, d:5 }, moeilijk:{ n:14, d:7 } }[level];
+    const COLS = ['#e07a5f','#3d8b7a','#e0b04f','#7b6d8d','#5b8fd6','#c96b8f'];
+    const KINDS = ['circle','rect','tri'];
+    const base = [];
+    for(let t = 0; t < 500 && base.length < cfg.n; t++){
+      const s = { k: pick(KINDS), x: randInt(40,260), y: randInt(40,260), r: randInt(16,30), c: pick(COLS) };
+      if(base.some(o => Math.hypot(o.x-s.x, o.y-s.y) < o.r + s.r + 6)) continue;
+      base.push(s);
+    }
+    const copies = base.map(s => ({...s}));
+    const added = [];
+    const diffs = [];
+    const order = shuffle(copies.map((_, i) => i));
+    const types = shuffle(['color','remove','size','add']);
+    for(let d = 0; d < cfg.d; d++){
+      const t = types[d % types.length];
+      if(t === 'add'){
+        let p = null;
+        for(let k = 0; k < 300 && !p; k++){
+          const x = randInt(40,260), y = randInt(40,260);
+          if(!copies.concat(added).some(o => !o.removed && Math.hypot(o.x-x, o.y-y) < o.r + 26)) p = {x, y};
+        }
+        if(p){ added.push({ k: pick(KINDS), x: p.x, y: p.y, r: 14, c: pick(COLS) }); diffs.push({ x: p.x, y: p.y, found: false }); }
+        continue;
+      }
+      const s = copies[order.pop()];
+      if(!s) continue;
+      if(t === 'color'){ s.c = COLS[(COLS.indexOf(s.c) + 1 + randInt(0,4)) % COLS.length]; }
+      if(t === 'remove'){ s.removed = true; }
+      if(t === 'size'){ s.r = Math.round(s.r * 1.4); }
+      diffs.push({ x: s.x, y: s.y, found: false });
+    }
+    const shape = s => s.k === 'circle' ? '<circle cx="' + s.x + '" cy="' + s.y + '" r="' + s.r + '" fill="' + s.c + '"/>'
+      : s.k === 'rect' ? '<rect x="' + (s.x-s.r) + '" y="' + (s.y-s.r) + '" width="' + (2*s.r) + '" height="' + (2*s.r) + '" rx="4" fill="' + s.c + '"/>'
+      : '<polygon points="' + s.x + ',' + (s.y-s.r) + ' ' + (s.x-s.r) + ',' + (s.y+s.r*0.8) + ' ' + (s.x+s.r) + ',' + (s.y+s.r*0.8) + '" fill="' + s.c + '"/>';
+    const bg = '<rect width="300" height="300" style="fill:var(--card)"/>';
+    const left = base.map(shape).join('');
+    const right = copies.filter(s => !s.removed).concat(added).map(shape).join('');
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="grid g2">'
+      + '<div><svg class="scene" viewBox="0 0 300 300" role="img" aria-label="Linker plaatje">' + bg + left + '</svg></div>'
+      + '<div><svg class="scene" id="rsvg" viewBox="0 0 300 300" role="img" aria-label="Rechter plaatje">' + bg + right + '</svg></div>'
+      + '</div>'
+      + '<div class="feedback" id="fb">Tik op het verschil in het rechterplaatje.</div>'
+      + '<div class="row" style="margin-top:12px"><button class="btn ghost" id="done">Klaar</button></div>';
+    const rsvg = $('rsvg');
+    let found = 0, ended = false;
+    const stat = () => { $('pr').textContent = 'Gevonden: ' + found + ' van ' + diffs.length; };
+    stat();
+    function end(){ if(ended) return; ended = true; finish(root, g, level, found, diffs.length, daily); }
+    rsvg.addEventListener('click', e => {
+      const pt = rsvg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      const p = pt.matrixTransform(rsvg.getScreenCTM().inverse());
+      const hit = diffs.find(d => !d.found && Math.hypot(d.x - p.x, d.y - p.y) < 30);
+      if(hit){
+        hit.found = true; found++; beep(true); stat();
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        ring.setAttribute('cx', hit.x); ring.setAttribute('cy', hit.y); ring.setAttribute('r', 30);
+        ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', '#2b7a4b'); ring.setAttribute('stroke-width', '5');
+        rsvg.appendChild(ring);
+        $('fb').className = 'feedback ok'; $('fb').textContent = 'Goed!';
+        if(found === diffs.length) setTimeout(end, 700);
+      } else {
+        beep(false); $('fb').className = 'feedback bad'; $('fb').textContent = 'Dat is hetzelfde. Probeer een ander plekje.';
+      }
+    });
+    $('done').onclick = end;
+  }
+
+  renderMenu();
+})();
+</script>
