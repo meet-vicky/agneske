@@ -3,7 +3,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp,
+  getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, getDocs, serverTimestamp,
   collection, query, where, orderBy, limit, onSnapshot, addDoc
 } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
@@ -115,11 +115,22 @@ async function joinPair(input){
   render();
 }
 
-function leave(){
+// Ontkoppelen haalt de koppeling uit de database, zodat een nieuwe partner gekoppeld kan worden
+async function leave(){
+  const old = code;
   unsubscribe();
   code = null;
   saveCode(null);
   errorText = '';
+  try{
+    if(old){
+      for(const sub of ['days', 'nudges']){
+        const s = await getDocs(collection(db, 'pairs', old, sub));
+        for(const d of s.docs){ await deleteDoc(d.ref); }
+      }
+      await deleteDoc(doc(db, 'pairs', old));
+    }
+  }catch(e){ errorText = 'Verwijderen op de server lukt niet: ' + e.message; }
   render();
 }
 

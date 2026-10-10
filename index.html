@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Agnes'ke</title>
+<title>Breinbreker</title>
 <style>
 /* Layout: one centered column. A start screen with a daily challenge and five games; each game opens with a level choice. */
 /* Palette: warm paper, deep green accent. Type: system UI for reliable reading on any phone. */
@@ -119,7 +119,7 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
 
 <main>
   <header>
-    <h1>Agnes'ke</h1>
+    <h1>Breinbreker</h1>
     <div class="row">
       <button id="sound" class="btn ghost" aria-pressed="true">Geluid aan</button>
       <button id="groot" class="btn ghost">Grote tekst</button>
@@ -244,6 +244,10 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
   function autoKey(gid){ return 'auto:' + gid; }
   function recommended(gid){ const i = store()[autoKey(gid)]; return i == null ? 1 : i; }
 
+  /* naam van de gebruiker, voor de begroeting (alleen in deze browser) */
+  let userName = '';
+  try{ userName = localStorage.getItem('hersenspel-naam') || ''; }catch(e){}
+
   /* boek-toegang: zes spelletjes zijn gratis; de boekcode maakt alles drie maanden vrij */
   const FREE_IDS = ['geheugen','woorden','rekenen','patroon','kleuren','orientatie'];
   const BOOK = { code: 'sneeuw', days: 90 };
@@ -287,6 +291,23 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     dcard.onclick = () => startDaily(dgame, day);
     menu.appendChild(dcard);
 
+    GAMES.forEach(g => {
+      if(calm && TIMED.includes(g.id)) return;
+      const b = document.createElement('button');
+      b.className = 'card';
+      b.innerHTML = '<h2></h2><p class="muted"></p><div class="best"></div>';
+      const locked = !FREE_IDS.includes(g.id) && !unlocked();
+      b.querySelector('h2').textContent = g.title + (locked ? ' 🔒' : '');
+      b.querySelector('p').textContent = g.desc;
+      const parts = LEVELS.map(l => {
+        const v = scores[g.id + ':' + l.id];
+        return l.name + ': ' + (v == null ? '–' : v);
+      });
+      b.querySelector('.best').textContent = locked ? 'Vergrendeld: vul het woord van pagina 46 in' : noScore ? '' : 'Beste score · ' + parts.join(' · ');
+      b.onclick = locked ? () => { $('code').focus(); $('code').scrollIntoView({ behavior:'smooth', block:'center' }); } : () => openGame(g);
+      menu.appendChild(b);
+    });
+
     // deze week: dagscores van de laatste zeven dagen en de reeks
     const keyFor = dd => dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
     const dayNames = ['zo','ma','di','wo','do','vr','za'];
@@ -321,7 +342,7 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     const ban = document.createElement('div'); ban.className = 'panel';
     ban.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true" style="width:64px;height:64px;float:left;margin:0 12px 4px 0">' + face(av, todayMin >= 5) + '</svg><h2></h2><p class="muted" style="margin:0"></p>';
     if(todayMin < 5){
-      ban.querySelector('h2').textContent = greet + '! Het is vandaag ' + dayFull + '.';
+      ban.querySelector('h2').textContent = greet + (userName ? ', ' + userName : '') + '! Het is vandaag ' + dayFull + '.';
       ban.querySelector('p').textContent = 'Je hebt vandaag nog niet genoeg geoefend. Nog ' + (5 - todayMin) + ' minuten en je reeks blijft lopen.';
     } else {
       ban.querySelector('h2').textContent = 'Goed bezig!';
@@ -386,24 +407,12 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     const tbtn = (label, on, fn) => { const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = label + ': ' + (on ? 'aan' : 'uit'); b.setAttribute('aria-pressed', String(on)); b.onclick = fn; st.appendChild(b); };
     tbtn('Zonder scores', noScore, () => { noScore = !noScore; setPref('hersenspel-geenscore', noScore); renderMenu(); });
     tbtn('Automatisch niveau', autoLvl, () => { autoLvl = !autoLvl; setPref('hersenspel-auto', autoLvl); renderMenu(); });
+    const nf = document.createElement('div'); nf.className = 'row'; nf.style.marginTop = '12px';
+    nf.innerHTML = '<input class="answer" id="naam" style="max-width:200px" autocomplete="off" placeholder="jouw naam" value="' + userName.replace(/"/g, '') + '"><button class="btn ghost" id="naamok">Bewaar naam</button>';
+    nf.querySelector('#naamok').onclick = () => { const v = nf.querySelector('#naam').value.trim().slice(0, 30); userName = v; try{ localStorage.setItem('hersenspel-naam', v); }catch(e){} renderMenu(); };
+    sp.appendChild(nf);
     menu.appendChild(sp);
 
-    GAMES.forEach(g => {
-      if(calm && TIMED.includes(g.id)) return;
-      const b = document.createElement('button');
-      b.className = 'card';
-      b.innerHTML = '<h2></h2><p class="muted"></p><div class="best"></div>';
-      const locked = !FREE_IDS.includes(g.id) && !unlocked();
-      b.querySelector('h2').textContent = g.title + (locked ? ' 🔒' : '');
-      b.querySelector('p').textContent = g.desc;
-      const parts = LEVELS.map(l => {
-        const v = scores[g.id + ':' + l.id];
-        return l.name + ': ' + (v == null ? '–' : v);
-      });
-      b.querySelector('.best').textContent = locked ? 'Vergrendeld: vul het woord van pagina 46 in' : noScore ? '' : 'Beste score · ' + parts.join(' · ');
-      b.onclick = locked ? () => { $('code').focus(); $('code').scrollIntoView({ behavior:'smooth', block:'center' }); } : () => openGame(g);
-      menu.appendChild(b);
-    });
   }
 
   function showStage(){
@@ -526,7 +535,7 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     menuBtn.onclick = goHome;
     shareBtn.onclick = () => {
       const label = daily ? 'Dagelijkse uitdaging ' + daily.day : levelName(level);
-      const text = "Agnes'ke · " + g.title + ' · ' + label + ': ' + score;
+      const text = "Breinbreker · " + g.title + ' · ' + label + ': ' + score;
       shareBox.hidden = false; shareBox.textContent = text;
       try{
         navigator.clipboard.writeText(text).then(
