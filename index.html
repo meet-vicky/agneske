@@ -270,6 +270,7 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
   }
   function unlocked(){
     const u = store().unlock;
+    if(u && u.season === 'Levenslang') return Date.now() < u.until;
     return !!(u && Date.now() < u.until && activeBooks().some(b => b.name === u.season));
   }
   function daysLeft(){ const u = store().unlock; return u ? Math.max(0, Math.ceil((u.until - Date.now()) / 86400000)) : 0; }
@@ -410,12 +411,17 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     const left = daysLeft();
     up.querySelector('#ust').insertAdjacentHTML('afterend', '<p style="margin:8px 0 0">' + BUY_LINKS.map(l => '<a href="' + l.url + '" target="_blank" rel="noopener" style="margin-right:14px">' + l.label + '</a>').join('') + '</p>');
     up.querySelector('#ust').textContent = unlocked()
-      ? 'Alle spelletjes zijn vrij. Nog ' + left + ' dagen.' + (left <= 14 ? ' Bijna afgelopen: heb je een nieuw boek, vul de nieuwe code in.' : '')
+      ? (store().unlock.season === 'Levenslang' ? 'Levenslang gratis: alle spelletjes zijn vrij.' : 'Alle spelletjes zijn vrij. Nog ' + left + ' dagen.') + (left <= 14 ? ' Bijna afgelopen: heb je een nieuw boek, vul de nieuwe code in.' : '')
       : (activeBooks().some(b => b.code) ? 'Gratis: zes spelletjes. Heb je het boek ' + activeBooks().filter(b => b.code).map(b => b.name).join(' of ') + '? Vul het woord van pagina 46 in voor drie maanden alle spelletjes.' : 'Het boek ' + currentBook().name + ' komt binnenkort. Dan vul je hier het woord van pagina 46 in.');
-    up.querySelector('#unl').onclick = () => {
+    up.querySelector('#unl').onclick = async () => {
       const ufb = up.querySelector('#ufb');
-      if(tryCode(up.querySelector('#code').value)){ renderMenu(); }
-      else { ufb.className = 'feedback bad'; ufb.textContent = 'Dat woord klopt niet. Kijk nog eens op pagina 46.'; }
+      const v = up.querySelector('#code').value;
+      if(tryCode(v)){ renderMenu(); return; }
+      if(window.checkLifetime && await window.checkLifetime(v)){
+        const d = store(); d.unlock = { until: Date.UTC(2099, 0, 1), season: 'Levenslang' }; put(d);
+        renderMenu(); return;
+      }
+      ufb.className = 'feedback bad'; ufb.textContent = 'Dat woord klopt niet. Kijk nog eens op pagina 46.';
     };
     menu.appendChild(up);
 

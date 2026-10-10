@@ -207,4 +207,16 @@ async function init(){
 }
 
 window.koppelMount = render;
+
+// Levenslange codes: een document in de verzameling 'levenslang' met de code als ID
+window.checkLifetime = async (input) => {
+  if(!uid) return false;
+  const c = String(input).trim().toUpperCase();
+  if(!c) return false;
+  try{
+    const snap = await getDoc(doc(db, 'levenslang', c));
+    return snap.exists() && snap.data().active === true;
+  }catch(e){ return false; }
+};
+
 init();
