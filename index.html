@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Agnes'ke</title>
 <style>
 /* Layout: one centered column. A start screen with a daily challenge and five games; each game opens with a level choice. */
@@ -229,11 +230,44 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     { id:'sudoku', title:'Mini-sudoku', desc:'Vul het rooster met 1 tot en met 4.', how:'In elke rij, elke kolom en elk vierkant van 2 bij 2 komt elk getal maar één keer voor. Kies een leeg vakje en tik daarna het juiste getal.', mode:'max', unit:'goed', start:playSudoku },
     { id:'spreuken', title:'Vul de spreuk aan', desc:'Welk woord hoort er in de spreuk?', how:'Er ontbreekt een woord in een bekende zegswijze. Kies het juiste woord.', mode:'max', unit:'goed', start:playProverbs },
     { id:'letterjacht', title:'Letterjacht', desc:'Maak zoveel mogelijk woorden uit dezelfde letters.', how:'Je krijgt een reeks letters. Typ woorden die je met die letters kunt maken, elke letter maar één keer. Langere woorden geven meer punten.', mode:'max', unit:'punten', start:playLetterHunt },
-    { id:'tijdaanval', title:'Tijdaanval', desc:'Zoveel mogelijk goede sommen in één minuut.', how:'Je hebt zestig seconden. Los zoveel mogelijk sommen op.', mode:'max', unit:'goed', start:playSpeed }
+    { id:'tijdaanval', title:'Tijdaanval', desc:'Zoveel mogelijk goede sommen in één minuut.', how:'Je hebt zestig seconden. Los zoveel mogelijk sommen op.', mode:'max', unit:'goed', start:playSpeed },
+    { id:'orientatie', title:'Oriëntatie & kennis', desc:'Welke dag is het? En wat is de hoofdstad van België?', how:'Korte vragen over vandaag en over algemene kennis. Kies het juiste antwoord.', mode:'max', unit:'goed', start:playOrientation }
   ];
 
   /* spellen met tijdsdruk: die verbergen we in de rustige modus */
   const TIMED = ['reactie','ballonnen','tijdaanval','letterjacht'];
+
+  /* instellingen: zonder scores en automatisch niveau (onthouden in de browser) */
+  let noScore = false, autoLvl = true;
+  try{ noScore = localStorage.getItem('hersenspel-geenscore') === 'aan'; autoLvl = localStorage.getItem('hersenspel-auto') !== 'uit'; }catch(e){}
+  function setPref(k, v){ try{ localStorage.setItem(k, v ? 'aan' : 'uit'); }catch(e){} }
+  function autoKey(gid){ return 'auto:' + gid; }
+  function recommended(gid){ const i = store()[autoKey(gid)]; return i == null ? 1 : i; }
+
+  /* boek-toegang: zes spelletjes zijn gratis; de boekcode maakt alles drie maanden vrij */
+  const FREE_IDS = ['geheugen','woorden','rekenen','patroon','kleuren','orientatie'];
+  const BOOK = { code: 'sneeuw', days: 90 };
+  function unlocked(){ const u = store().unlock; return !!(u && Date.now() < u.until); }
+  function daysLeft(){ const u = store().unlock; return u ? Math.max(0, Math.ceil((u.until - Date.now()) / 86400000)) : 0; }
+  function tryCode(v){
+    if(String(v).trim().toLowerCase() !== BOOK.code) return false;
+    if(!unlocked()){ const d = store(); d.unlock = { until: Date.now() + BOOK.days * 86400000 }; put(d); }
+    return true;
+  }
+
+  /* algemene kennis: drie foute antwoorden per vraag */
+  const TRIVIA = [
+    { q:'Wat is de hoofdstad van België?', a:'Brussel', w:['Antwerpen','Gent','Brugge'] },
+    { q:'In welke stad staat het Atomium?', a:'Brussel', w:['Gent','Leuven','Luik'] },
+    { q:'Wat is de hoofdstad van Nederland?', a:'Amsterdam', w:['Rotterdam','Den Haag','Utrecht'] },
+    { q:'Welke rivier stroomt door Antwerpen?', a:'Schelde', w:['Maas','Rijn','Leie'] },
+    { q:'Hoeveel maanden heeft een jaar?', a:'12', w:['10','11','14'] },
+    { q:'Hoeveel seconden heeft een minuut?', a:'60', w:['50','100','30'] },
+    { q:'Hoeveel poten heeft een spin?', a:'8', w:['6','10','4'] },
+    { q:'Welk dier geeft melk?', a:'koe', w:['kip','vis','paard'] },
+    { q:'Welke vogel is het symbool van vrede?', a:'duif', w:['arend','pinguïn','uil'] },
+    { q:'Welk seizoen komt na de zomer?', a:'herfst', w:['lente','winter','zomer'] }
+  ];
 
   /* ---------- startscherm ---------- */
   function renderMenu(){
@@ -242,13 +276,14 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
 
     // dagelijkse uitdaging: zelfde spel en puzzel voor iedereen op dezelfde dag
     const day = todayKey();
-    const dgame = GAMES[dayNumber(day) % GAMES.length];
+    const dpool = unlocked() ? GAMES : GAMES.filter(x => FREE_IDS.includes(x.id));
+    const dgame = dpool[dayNumber(day) % dpool.length];
     const doneToday = scores['daily:' + day];
     const dcard = document.createElement('button');
     dcard.className = 'card daily';
     dcard.innerHTML = '<h2>Dagelijkse uitdaging</h2><p class="muted"></p><div class="best"></div>';
     dcard.querySelector('p').textContent = dgame.title + ', niveau normaal. Dezelfde puzzel voor iedereen vandaag.';
-    dcard.querySelector('.best').textContent = doneToday == null ? 'Nog niet gespeeld vandaag' : 'Vandaag gehaald: ' + doneToday + ' ' + dgame.unit;
+    dcard.querySelector('.best').textContent = doneToday == null ? 'Nog niet gespeeld vandaag' : noScore ? 'Vandaag gespeeld' : 'Vandaag gehaald: ' + doneToday + ' ' + dgame.unit;
     dcard.onclick = () => startDaily(dgame, day);
     menu.appendChild(dcard);
 
@@ -273,12 +308,18 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     wk.innerHTML = wkHtml;
     menu.appendChild(wk);
 
+    // gezichtjes: zes kleuren; het gezichtje lacht als je vijf minuten hebt geoefend
+    const COLS6 = ['#e07a5f','#3d8b7a','#e0b04f','#5b8fd6','#7b6d8d','#c96b8f'];
+    const face = (i, happy) => '<circle cx="50" cy="50" r="42" fill="' + COLS6[i] + '"/><circle cx="36" cy="42" r="6" fill="#1c1e22"/><circle cx="64" cy="42" r="6" fill="#1c1e22"/>'
+      + (happy ? '<path d="M32 58 Q50 78 68 58" stroke="#1c1e22" stroke-width="5" fill="none" stroke-linecap="round"/>'
+               : '<path d="M36 68 L64 68" stroke="#1c1e22" stroke-width="5" stroke-linecap="round"/>');
+    let av = 0; try{ av = Number(localStorage.getItem('hersenspel-avatar')) || 0; }catch(e){}
     // begroeting bovenaan, met de stand van vandaag
     const hr = new Date().getHours();
     const greet = hr < 12 ? 'Goedemorgen' : hr < 18 ? 'Goedemiddag' : 'Goedenavond';
     const dayFull = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][new Date().getDay()];
     const ban = document.createElement('div'); ban.className = 'panel';
-    ban.innerHTML = '<h2></h2><p class="muted" style="margin:0"></p>';
+    ban.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true" style="width:64px;height:64px;float:left;margin:0 12px 4px 0">' + face(av, todayMin >= 5) + '</svg><h2></h2><p class="muted" style="margin:0"></p>';
     if(todayMin < 5){
       ban.querySelector('h2').textContent = greet + '! Het is vandaag ' + dayFull + '.';
       ban.querySelector('p').textContent = 'Je hebt vandaag nog niet genoeg geoefend. Nog ' + (5 - todayMin) + ' minuten en je reeks blijft lopen.';
@@ -305,41 +346,62 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     });
     menu.appendChild(bp);
 
-    // figuur kiezen (zes eenvoudige vormen)
-    const AV = [
-      '<circle cx="50" cy="50" r="38" fill="#e07a5f"/>',
-      '<rect x="14" y="14" width="72" height="72" rx="14" fill="#3d8b7a"/>',
-      '<polygon points="50,12 90,84 10,84" fill="#e0b04f"/>',
-      '<circle cx="50" cy="50" r="38" fill="#5b8fd6"/><circle cx="50" cy="50" r="14" fill="#ffffff"/>',
-      '<polygon points="50,10 61,38 90,38 66,56 75,86 50,68 25,86 34,56 10,38 39,38" fill="#7b6d8d"/>',
-      '<rect x="14" y="14" width="72" height="72" rx="36" fill="#c96b8f"/>'
-    ];
-    let av = 0; try{ av = Number(localStorage.getItem('hersenspel-avatar')) || 0; }catch(e){}
+    // figuur kiezen: zes gezichtjes, de gekozen vriendje begroet je bovenaan
     const ap = document.createElement('div'); ap.className = 'panel';
-    ap.innerHTML = '<h2>Mijn figuur</h2><div class="avpick" id="ap"></div>';
-    AV.forEach((shape, i) => {
+    ap.innerHTML = '<h2>Kies je vriendje</h2><div class="avpick" id="ap"></div>';
+    COLS6.forEach((_, i) => {
       const b = document.createElement('button');
       if(i === av) b.className = 'sel';
-      b.setAttribute('aria-label', 'Figuur ' + (i+1));
-      b.innerHTML = '<svg viewBox="0 0 100 100">' + shape + '</svg>';
+      b.setAttribute('aria-label', 'Vriendje ' + (i+1));
+      b.innerHTML = '<svg viewBox="0 0 100 100">' + face(i, true) + '</svg>';
       b.onclick = () => { try{ localStorage.setItem('hersenspel-avatar', String(i)); }catch(e){} renderMenu(); };
       ap.querySelector('#ap').appendChild(b);
     });
     menu.appendChild(ap);
+
+    // boek-toegang: het woord van pagina 46 ontgrendelt drie maanden
+    const up = document.createElement('div'); up.className = 'panel';
+    up.innerHTML = '<h2>Boek Wintertijd</h2><p class="muted" style="margin:0" id="ust"></p>'
+      + '<div class="row" style="margin-top:10px"><input class="answer" id="code" style="max-width:240px" autocomplete="off" autocapitalize="none" aria-label="Woord van pagina 46" placeholder="woord van pagina 46"><button class="btn" id="unl">Ontgrendel</button></div>'
+      + '<div class="feedback" id="ufb"></div>';
+    const left = daysLeft();
+    up.querySelector('#ust').textContent = unlocked()
+      ? 'Alle spelletjes zijn vrij. Nog ' + left + ' dagen.' + (left <= 14 ? ' Bijna afgelopen: heb je een nieuw boek, vul de nieuwe code in.' : '')
+      : 'Gratis: zes spelletjes. Heb je het boek? Vul het woord van pagina 46 in voor drie maanden alle spelletjes.';
+    up.querySelector('#unl').onclick = () => {
+      const ufb = up.querySelector('#ufb');
+      if(tryCode(up.querySelector('#code').value)){ renderMenu(); }
+      else { ufb.className = 'feedback bad'; ufb.textContent = 'Dat woord klopt niet. Kijk nog eens op pagina 46.'; }
+    };
+    menu.appendChild(up);
+
+    // koppeling met het toestel van je partner (zie koppel.js)
+    const ks = document.createElement('div'); ks.id = 'koppel-slot'; menu.appendChild(ks);
+    if(window.koppelMount) window.koppelMount();
+
+    // instellingen: zonder scores en automatisch niveau
+    const sp = document.createElement('div'); sp.className = 'panel';
+    sp.innerHTML = '<h2>Instellingen</h2><div class="toggles" id="st"></div>';
+    const st = sp.querySelector('#st');
+    const tbtn = (label, on, fn) => { const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = label + ': ' + (on ? 'aan' : 'uit'); b.setAttribute('aria-pressed', String(on)); b.onclick = fn; st.appendChild(b); };
+    tbtn('Zonder scores', noScore, () => { noScore = !noScore; setPref('hersenspel-geenscore', noScore); renderMenu(); });
+    tbtn('Automatisch niveau', autoLvl, () => { autoLvl = !autoLvl; setPref('hersenspel-auto', autoLvl); renderMenu(); });
+    menu.appendChild(sp);
 
     GAMES.forEach(g => {
       if(calm && TIMED.includes(g.id)) return;
       const b = document.createElement('button');
       b.className = 'card';
       b.innerHTML = '<h2></h2><p class="muted"></p><div class="best"></div>';
-      b.querySelector('h2').textContent = g.title;
+      const locked = !FREE_IDS.includes(g.id) && !unlocked();
+      b.querySelector('h2').textContent = g.title + (locked ? ' 🔒' : '');
       b.querySelector('p').textContent = g.desc;
       const parts = LEVELS.map(l => {
         const v = scores[g.id + ':' + l.id];
         return l.name + ': ' + (v == null ? '–' : v);
       });
-      b.querySelector('.best').textContent = 'Beste score · ' + parts.join(' · ');
-      b.onclick = () => openGame(g);
+      b.querySelector('.best').textContent = locked ? 'Vergrendeld: vul het woord van pagina 46 in' : noScore ? '' : 'Beste score · ' + parts.join(' · ');
+      b.onclick = locked ? () => { $('code').focus(); $('code').scrollIntoView({ behavior:'smooth', block:'center' }); } : () => openGame(g);
       menu.appendChild(b);
     });
   }
@@ -361,10 +423,11 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
       const b = document.createElement('button');
       b.className = 'card';
       b.innerHTML = '<h2></h2><p class="muted"></p><div class="best"></div>';
-      b.querySelector('h2').textContent = l.name;
+      const rec = autoLvl && recommended(g.id) === LEVELS.indexOf(l);
+      b.querySelector('h2').textContent = l.name + (rec ? ' · aanbevolen' : '');
       b.querySelector('p').textContent = l.desc;
       const v = scores[g.id + ':' + l.id];
-      b.querySelector('.best').textContent = 'Beste score: ' + (v == null ? 'nog niet gespeeld' : v + ' ' + g.unit);
+      b.querySelector('.best').textContent = noScore ? '' : 'Beste score: ' + (v == null ? 'nog niet gespeeld' : v + ' ' + g.unit);
       b.onclick = () => startLevel(g, l.id, null);
       head.querySelector('#lvls').appendChild(b);
     });
@@ -375,9 +438,15 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
   function tally(){ if(sessionStart){ addMinutes(Date.now() - sessionStart); sessionStart = Date.now(); } }
   function startLevel(g, level, daily){
     sessionStart = Date.now();
-    $('stage').innerHTML = '';
+    const st = $('stage'); st.innerHTML = '';
+    // stopknop altijd boven het spel, ook op een klein telefoonscherm
+    const bar = document.createElement('div'); bar.className = 'row'; bar.style.marginBottom = '12px';
+    bar.innerHTML = '<button class="btn ghost" id="stop">✕ Stoppen</button>';
+    const body = document.createElement('div');
+    st.appendChild(bar); st.appendChild(body);
+    $('stop').onclick = goHome;
     rng = daily ? seeded(dayNumber(daily.day) * 31 + GAMES.indexOf(g)) : Math.random;
-    g.start($('stage'), g, level, daily);
+    g.start(body, g, level, daily);
     window.scrollTo(0,0);
   }
   function startDaily(g, day){
@@ -392,13 +461,64 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
   }
   $('home').onclick = goHome;
 
+  /* 10. Oriëntatie & kennis: dag, datum, maand, seizoen, deel van de dag, plus algemene vragen */
+  function playOrientation(root, g, level, daily){
+    const now = new Date(), dd = now.getDate();
+    const dayNames = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+    const monthNames = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+    const seasons = ['winter','lente','zomer','herfst'];
+    const seasonNow = ['winter','winter','lente','lente','lente','zomer','zomer','zomer','herfst','herfst','herfst','winter'][now.getMonth()];
+    const hr = now.getHours();
+    const part = hr < 6 ? 'nacht' : hr < 12 ? 'ochtend' : hr < 18 ? 'middag' : 'avond';
+    const nWrong = level === 'makkelijk' ? 2 : 3;
+    const nTrivia = level === 'moeilijk' ? 3 : 2;
+    const pickWrong = (correct, pool) => shuffle(pool.filter(x => x !== correct)).slice(0, nWrong);
+    const dayNow = dayNames[now.getDay()], monthNow = monthNames[now.getMonth()];
+    const near = shuffle([dd+1, dd+2, dd-1, dd-2, dd+3, dd-3].filter(n => n >= 1 && n <= 31)).slice(0, nWrong).map(String);
+    const orient = [
+      { q:'Welke dag van de week is het vandaag?', a:dayNow, w:pickWrong(dayNow, dayNames) },
+      { q:'Welke datum is het vandaag?', a:String(dd), w:near },
+      { q:'In welke maand zitten we?', a:monthNow, w:pickWrong(monthNow, monthNames) },
+      { q:'Welk seizoen is het nu?', a:seasonNow, w:pickWrong(seasonNow, seasons) },
+      { q:'Wat is het deel van de dag nu?', a:part, w:pickWrong(part, ['ochtend','middag','avond','nacht']) }
+    ];
+    const trivia = shuffle(TRIVIA).slice(0, nTrivia).map(t => ({ q:t.q, a:t.a, w:t.w.slice(0, nWrong) }));
+    const list = shuffle([...orient, ...trivia]);
+    const total = list.length; let i = 0, score = 0;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="zin" id="qq"></div><div class="grid g2" id="opts"></div>'
+      + '<div class="feedback" id="fb"></div>';
+    function show(){
+      const it = list[i];
+      $('pr').textContent = 'Vraag ' + (i+1) + ' van ' + total + ' · goed: ' + score;
+      $('qq').textContent = it.q;
+      $('fb').className = 'feedback'; $('fb').textContent = '';
+      const box = $('opts'); box.innerHTML = '';
+      shuffle([it.a, ...it.w]).forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'btn ghost opt'; b.textContent = o;
+        b.onclick = () => answer(o === it.a, it.a, box);
+        box.appendChild(b);
+      });
+    }
+    function answer(ok, real, box){
+      [...box.children].forEach(b => b.disabled = true);
+      if(ok){ score++; beep(true); $('fb').className = 'feedback ok'; $('fb').textContent = 'Goed!'; }
+      else { beep(false); $('fb').className = 'feedback bad'; $('fb').textContent = 'Het juiste antwoord was ' + real + '.'; }
+      i++;
+      setTimeout(() => { if(i >= total) finish(root, g, level, score, total, daily); else show(); }, 1000);
+    }
+    show();
+  }
+
   /* ---------- uitslag, met deelknop ---------- */
   function resultPanel(root, g, level, value, total, daily){
     const p = document.createElement('div'); p.className = 'panel';
     p.innerHTML = '<h2>Klaar!</h2><p class="big"></p><div class="row"><button class="btn">Opnieuw</button><button class="btn ghost">Menu</button></div>'
       + '<div class="row" style="margin-top:12px"><button class="btn ghost">Deel mijn score</button></div><div class="share-text" hidden></div>';
     const score = total != null ? value + ' / ' + total : value + ' ' + g.unit;
-    p.querySelector('.big').textContent = score;
+    p.querySelector('.big').textContent = noScore ? 'Goed gedaan!' : score;
+    if(noScore) p.querySelectorAll('.row')[1].hidden = true;
     const [again, menuBtn] = p.querySelectorAll('.row')[0].querySelectorAll('button');
     const shareBtn = p.querySelectorAll('.row')[1].querySelector('button');
     const shareBox = p.querySelector('.share-text');
@@ -420,9 +540,16 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
 
   /* finish: bewaar de score en toon de uitslag. Bij de dagelijkse uitdaging ook de dagscore. */
   function finish(root, g, level, value, total, daily){
+    if(!root.isConnected) return; // spel is gestopt: geen score opslaan
     tally();
     saveScore(g.id, level, value, g.mode);
     if(daily) saveScore('daily', daily.day, value, 'max');
+    // automatisch niveau: bijna alles goed, een stap omhoog; veel fout, een stap omlaag
+    if(autoLvl && total && !daily){
+      const ratio = value / total, idx = LEVELS.findIndex(l => l.id === level);
+      const next = ratio >= .8 ? Math.min(LEVELS.length - 1, idx + 1) : ratio < .4 ? Math.max(0, idx - 1) : idx;
+      const d = store(); d[autoKey(g.id)] = next; put(d);
+    }
     resultPanel(root, g, level, value, total, daily);
   }
 
@@ -1236,3 +1363,6 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
   renderMenu();
 })();
 </script>
+
+<script type="module" src="koppel.js"></script>
+</body></html>
