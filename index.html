@@ -82,6 +82,35 @@ p{margin:0 0 12px}
 .chip.wrong{background:var(--bad); color:#fff; border-color:var(--bad)}
 .chip.miss{border:2px dashed var(--ok)}
 .scene{width:100%; height:auto; display:block; border-radius:12px; border:1px solid var(--line); cursor:crosshair}
+.wgrid{display:grid; gap:3px; margin-top:12px; user-select:none}
+.wc{aspect-ratio:1; min-width:0; padding:0; border:1px solid var(--line); background:var(--card); color:var(--fg); font:inherit; font-size:.95rem; text-transform:uppercase; border-radius:6px; cursor:pointer}
+.wc.sel{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.wc.found{background:var(--ok); color:#fff; border-color:var(--ok)}
+.wlist{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.wlist span{padding:4px 10px; border-radius:999px; border:1px solid var(--line); font-size:.9rem; text-transform:uppercase}
+.wlist span.done{text-decoration:line-through; color:var(--muted)}
+.c4{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:12px; padding:8px; background:var(--card); border:1px solid var(--line); border-radius:14px}
+.c4 button{min-height:34px; min-width:0; border:0; border-radius:8px; background:var(--tile); color:var(--fg); cursor:pointer; font:inherit}
+.c4 button:disabled{opacity:.35; cursor:default}
+.disc{aspect-ratio:1; min-width:0; border-radius:50%; background:var(--tile)}
+.disc.p1{background:var(--accent)}
+.disc.p2{background:var(--bad)}
+.sgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px}
+.sc{aspect-ratio:1; min-width:0; font:inherit; font-size:1.4rem; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer; padding:0}
+.sc.given{background:var(--tile); font-weight:700; cursor:default}
+.sc.ok{background:var(--ok); color:#fff; border-color:var(--ok)}
+.sc.sel{outline:3px solid var(--accent); outline-offset:1px}
+.numpad{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px}
+.numpad button{min-height:48px; font:inherit; font-size:1.2rem; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer}
+.zin{font-size:1.25rem; font-weight:600; text-align:center; margin:18px 0; text-wrap:balance}
+body.groot{font-size:20px}
+.toggles{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.badge{padding:6px 12px; border-radius:999px; border:1px solid var(--line); color:var(--muted); font-size:.9rem}
+.badge.earned{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.avpick{display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:12px}
+.avpick button{aspect-ratio:1; min-width:0; padding:6px; border:2px solid var(--line); border-radius:12px; background:var(--card); cursor:pointer}
+.avpick button.sel{border-color:var(--accent)}
+.avpick svg{width:100%; height:100%; display:block}
 footer{margin-top:28px; color:var(--muted); font-size:.85rem}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
@@ -92,6 +121,8 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     <h1>Agnes'ke</h1>
     <div class="row">
       <button id="sound" class="btn ghost" aria-pressed="true">Geluid aan</button>
+      <button id="groot" class="btn ghost">Grote tekst</button>
+      <button id="rustig" class="btn ghost" aria-pressed="false">Rustig: uit</button>
       <button id="home" class="btn ghost" hidden>Menu</button>
     </div>
   </header>
@@ -131,6 +162,18 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     setSoundBtn();
   };
   setSoundBtn();
+  /* grote tekst en rustige modus, onthouden in de browser */
+  let big = false, calm = false;
+  try{ big = localStorage.getItem('hersenspel-groot') === 'aan'; calm = localStorage.getItem('hersenspel-rustig') === 'aan'; }catch(e){}
+  function applyPrefs(){
+    document.body.classList.toggle('groot', big);
+    $('groot').textContent = big ? 'Normale tekst' : 'Grote tekst';
+    $('rustig').textContent = calm ? 'Rustig: aan' : 'Rustig: uit';
+    $('rustig').setAttribute('aria-pressed', String(calm));
+  }
+  $('groot').onclick = () => { big = !big; try{ localStorage.setItem('hersenspel-groot', big ? 'aan' : 'uit'); }catch(e){} applyPrefs(); };
+  $('rustig').onclick = () => { calm = !calm; try{ localStorage.setItem('hersenspel-rustig', calm ? 'aan' : 'uit'); }catch(e){} applyPrefs(); renderMenu(); };
+  applyPrefs();
   let audio = null;
   function beep(ok){
     if(!soundOn) return;
@@ -180,8 +223,17 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     { id:'reactie',  title:'Reactiespel',     desc:'Tik zo snel mogelijk.', how:'Een vakje licht op. Tik er snel op voordat het weer uitgaat.', mode:'max', unit:'goed', start:playReaction },
     { id:'ballonnen', title:'Ballonnen',       desc:'Knap de ballonnen voordat ze wegvliegen.', how:'Er stijgen ballonnen op. Tik erop voordat ze uit beeld zijn. Een ballon die wegvliegt, telt als gemist.', mode:'max', unit:'geknapt', start:playBalloons },
     { id:'woordgeheugen', title:'Woordgeheugen', desc:'Onthoud de woorden en tik ze aan.', how:'Eerst zie je een paar woorden. Daarna verdwijnen ze. Tik de woorden aan die je zag, uit een lijst met ook nieuwe woorden.', mode:'max', unit:'goed', start:playWordMemory },
-    { id:'verschillen', title:'Zoek de verschillen', desc:'Vind de verschillen tussen twee plaatjes.', how:'Links en rechts staan twee plaatjes. Rechts is iets anders: er ontbreekt iets, iets heeft een andere kleur of grootte, of er staat iets extra. Tik op het verschil in het rechterplaatje.', mode:'max', unit:'verschillen', start:playSpot }
+    { id:'verschillen', title:'Zoek de verschillen', desc:'Vind de verschillen tussen twee plaatjes.', how:'Links en rechts staan twee plaatjes. Rechts is iets anders: er ontbreekt iets, iets heeft een andere kleur of grootte, of er staat iets extra. Tik op het verschil in het rechterplaatje.', mode:'max', unit:'verschillen', start:playSpot },
+    { id:'woordzoeker', title:'Woordzoeker', desc:'Zoek de woorden in het letterrooster.', how:'Tik de eerste letter van een woord en daarna de laatste letter. De woorden staan horizontaal of verticaal in het rooster.', mode:'max', unit:'woorden', start:playWordSearch },
+    { id:'vier', title:'Vier op een rij', desc:'Leg vier op een rij voor de computer.', how:'Laat vier van je schijven op een rij liggen: horizontaal, verticaal of diagonaal. Je speelt drie spellen tegen de computer.', mode:'max', unit:'gewonnen', start:playConnect },
+    { id:'sudoku', title:'Mini-sudoku', desc:'Vul het rooster met 1 tot en met 4.', how:'In elke rij, elke kolom en elk vierkant van 2 bij 2 komt elk getal maar één keer voor. Kies een leeg vakje en tik daarna het juiste getal.', mode:'max', unit:'goed', start:playSudoku },
+    { id:'spreuken', title:'Vul de spreuk aan', desc:'Welk woord hoort er in de spreuk?', how:'Er ontbreekt een woord in een bekende zegswijze. Kies het juiste woord.', mode:'max', unit:'goed', start:playProverbs },
+    { id:'letterjacht', title:'Letterjacht', desc:'Maak zoveel mogelijk woorden uit dezelfde letters.', how:'Je krijgt een reeks letters. Typ woorden die je met die letters kunt maken, elke letter maar één keer. Langere woorden geven meer punten.', mode:'max', unit:'punten', start:playLetterHunt },
+    { id:'tijdaanval', title:'Tijdaanval', desc:'Zoveel mogelijk goede sommen in één minuut.', how:'Je hebt zestig seconden. Los zoveel mogelijk sommen op.', mode:'max', unit:'goed', start:playSpeed }
   ];
+
+  /* spellen met tijdsdruk: die verbergen we in de rustige modus */
+  const TIMED = ['reactie','ballonnen','tijdaanval','letterjacht'];
 
   /* ---------- startscherm ---------- */
   function renderMenu(){
@@ -200,7 +252,83 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     dcard.onclick = () => startDaily(dgame, day);
     menu.appendChild(dcard);
 
+    // deze week: dagscores van de laatste zeven dagen en de reeks
+    const keyFor = dd => dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
+    const dayNames = ['zo','ma','di','wo','do','vr','za'];
+    const wk = document.createElement('div'); wk.className = 'panel';
+    let wkHtml = '<h2>Deze week</h2><div class="wlist">';
+    for(let i = 6; i >= 0; i--){
+      const dd = new Date(); dd.setDate(dd.getDate() - i);
+      const m = Math.round((scores['min:' + keyFor(dd)] || 0) / 60000);
+      wkHtml += '<span>' + dayNames[dd.getDay()] + ' ' + m + ' min</span>';
+    }
+    let streak = 0;
+    for(let i = 0; i < 365; i++){
+      const dd = new Date(); dd.setDate(dd.getDate() - i);
+      if((scores['min:' + keyFor(dd)] || 0) >= 300000) streak++; else if(i === 0) continue; else break;
+    }
+    const todayMin = Math.round((scores['min:' + keyFor(new Date())] || 0) / 60000);
+    wkHtml += '</div><p class="muted" style="margin:10px 0 0">Vandaag: ' + Math.min(todayMin, 5) + ' van 5 minuten.</p>'
+      + '<p class="muted" style="margin:4px 0 0">Reeks: ' + streak + ' dag' + (streak === 1 ? '' : 'en') + ' op rij met minstens 5 minuten.</p>';
+    wk.innerHTML = wkHtml;
+    menu.appendChild(wk);
+
+    // begroeting bovenaan, met de stand van vandaag
+    const hr = new Date().getHours();
+    const greet = hr < 12 ? 'Goedemorgen' : hr < 18 ? 'Goedemiddag' : 'Goedenavond';
+    const dayFull = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'][new Date().getDay()];
+    const ban = document.createElement('div'); ban.className = 'panel';
+    ban.innerHTML = '<h2></h2><p class="muted" style="margin:0"></p>';
+    if(todayMin < 5){
+      ban.querySelector('h2').textContent = greet + '! Het is vandaag ' + dayFull + '.';
+      ban.querySelector('p').textContent = 'Je hebt vandaag nog niet genoeg geoefend. Nog ' + (5 - todayMin) + ' minuten en je reeks blijft lopen.';
+    } else {
+      ban.querySelector('h2').textContent = 'Goed bezig!';
+      ban.querySelector('p').textContent = 'Je hebt vandaag je vijf minuten gehaald. Reeks: ' + streak + ' dag' + (streak === 1 ? '' : 'en') + ' op rij.';
+    }
+    menu.prepend(ban);
+
+    // badges: beloningen die je met oefenen haalt
+    const minKeys = Object.keys(scores).filter(k => k.startsWith('min:'));
+    const badgeDefs = [
+      { t:'Eerste keer geoefend', ok: minKeys.some(k => scores[k] > 0) },
+      { t:'Vijf minuten op één dag', ok: minKeys.some(k => scores[k] >= 300000) },
+      { t:'Zeven dagen op rij', ok: streak >= 7 },
+      { t:'Alle spellen gespeeld', ok: GAMES.every(gm => LEVELS.some(l => scores[gm.id + ':' + l.id] != null)) }
+    ];
+    const bp = document.createElement('div'); bp.className = 'panel';
+    bp.innerHTML = '<h2>Badges</h2><div class="toggles" id="bl"></div>';
+    badgeDefs.forEach(b => {
+      const s = document.createElement('span');
+      s.className = 'badge' + (b.ok ? ' earned' : ''); s.textContent = b.t;
+      bp.querySelector('#bl').appendChild(s);
+    });
+    menu.appendChild(bp);
+
+    // figuur kiezen (zes eenvoudige vormen)
+    const AV = [
+      '<circle cx="50" cy="50" r="38" fill="#e07a5f"/>',
+      '<rect x="14" y="14" width="72" height="72" rx="14" fill="#3d8b7a"/>',
+      '<polygon points="50,12 90,84 10,84" fill="#e0b04f"/>',
+      '<circle cx="50" cy="50" r="38" fill="#5b8fd6"/><circle cx="50" cy="50" r="14" fill="#ffffff"/>',
+      '<polygon points="50,10 61,38 90,38 66,56 75,86 50,68 25,86 34,56 10,38 39,38" fill="#7b6d8d"/>',
+      '<rect x="14" y="14" width="72" height="72" rx="36" fill="#c96b8f"/>'
+    ];
+    let av = 0; try{ av = Number(localStorage.getItem('hersenspel-avatar')) || 0; }catch(e){}
+    const ap = document.createElement('div'); ap.className = 'panel';
+    ap.innerHTML = '<h2>Mijn figuur</h2><div class="avpick" id="ap"></div>';
+    AV.forEach((shape, i) => {
+      const b = document.createElement('button');
+      if(i === av) b.className = 'sel';
+      b.setAttribute('aria-label', 'Figuur ' + (i+1));
+      b.innerHTML = '<svg viewBox="0 0 100 100">' + shape + '</svg>';
+      b.onclick = () => { try{ localStorage.setItem('hersenspel-avatar', String(i)); }catch(e){} renderMenu(); };
+      ap.querySelector('#ap').appendChild(b);
+    });
+    menu.appendChild(ap);
+
     GAMES.forEach(g => {
+      if(calm && TIMED.includes(g.id)) return;
       const b = document.createElement('button');
       b.className = 'card';
       b.innerHTML = '<h2></h2><p class="muted"></p><div class="best"></div>';
@@ -241,7 +369,12 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
       head.querySelector('#lvls').appendChild(b);
     });
   }
+  /* oefentijd per dag: telt de minuten die je in de spellen doorbrengt */
+  let sessionStart = 0;
+  function addMinutes(ms){ const d = store(); const k = 'min:' + todayKey(); d[k] = (d[k] || 0) + ms; put(d); }
+  function tally(){ if(sessionStart){ addMinutes(Date.now() - sessionStart); sessionStart = Date.now(); } }
   function startLevel(g, level, daily){
+    sessionStart = Date.now();
     $('stage').innerHTML = '';
     rng = daily ? seeded(dayNumber(daily.day) * 31 + GAMES.indexOf(g)) : Math.random;
     g.start($('stage'), g, level, daily);
@@ -252,6 +385,7 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
     startLevel(g, 'normaal', { day });
   }
   function goHome(){
+    tally(); sessionStart = 0;
     $('stage').hidden = true; $('stage').innerHTML = '';
     $('menu').hidden = false; $('home').hidden = true;
     renderMenu();
@@ -286,6 +420,7 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
 
   /* finish: bewaar de score en toon de uitslag. Bij de dagelijkse uitdaging ook de dagscore. */
   function finish(root, g, level, value, total, daily){
+    tally();
     saveScore(g.id, level, value, g.mode);
     if(daily) saveScore('daily', daily.day, value, 'max');
     resultPanel(root, g, level, value, total, daily);
@@ -752,6 +887,350 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
       }
     });
     $('done').onclick = end;
+  }
+
+  /* 10. Woordzoeker: letterrooster met verborgen woorden, horizontaal of verticaal. */
+  function playWordSearch(root, g, level, daily){
+    const cfg = {
+      makkelijk: { n:3, size:6,  min:3, max:5 },
+      normaal:   { n:5, size:8,  min:4, max:6 },
+      moeilijk:  { n:7, size:10, min:5, max:8 }
+    }[level];
+    const size = cfg.size;
+    const pool = shuffle(WORDS.filter(w => /^[a-z]+$/.test(w) && w.length >= cfg.min && w.length <= cfg.max));
+    const grid = Array.from({length:size}, () => Array(size).fill(''));
+    const placed = [];
+    for(const w of pool){
+      if(placed.length >= cfg.n) break;
+      for(let t = 0, ok = false; t < 300 && !ok; t++){
+        const horiz = rand() < .5, dr = horiz ? 0 : 1, dc = horiz ? 1 : 0;
+        const r = randInt(0, size-1), c = randInt(0, size-1);
+        if(r + dr*(w.length-1) >= size || c + dc*(w.length-1) >= size) continue;
+        let fits = true;
+        for(let k = 0; k < w.length; k++){ const cell = grid[r+dr*k][c+dc*k]; if(cell && cell !== w[k]){ fits = false; break; } }
+        if(!fits) continue;
+        const cells = [];
+        for(let k = 0; k < w.length; k++){ grid[r+dr*k][c+dc*k] = w[k]; cells.push([r+dr*k, c+dc*k]); }
+        placed.push({ w, cells, found:false }); ok = true;
+      }
+    }
+    const L = 'abcdefghijklmnopqrstuvwxyz';
+    for(let r = 0; r < size; r++) for(let c = 0; c < size; c++) if(!grid[r][c]) grid[r][c] = pick(L);
+
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="wgrid" id="wg" style="grid-template-columns:repeat(' + size + ',1fr)"></div>'
+      + '<div class="wlist" id="wl"></div><div class="feedback" id="fb">Tik op de eerste letter en daarna op de laatste letter.</div>';
+    const els = [];
+    const wg = $('wg');
+    for(let r = 0; r < size; r++){
+      els.push([]);
+      for(let c = 0; c < size; c++){
+        const b = document.createElement('button');
+        b.className = 'wc'; b.textContent = grid[r][c]; b.setAttribute('aria-label', grid[r][c]);
+        b.onclick = () => tap(r, c, b);
+        wg.appendChild(b); els[r].push(b);
+      }
+    }
+    const wl = $('wl');
+    placed.forEach(p => { const s = document.createElement('span'); s.textContent = p.w; p.el = s; wl.appendChild(s); });
+
+    let start = null, found = 0;
+    function status(){ $('pr').textContent = 'Gevonden: ' + found + ' van ' + placed.length; }
+    status();
+    function tap(r, c, btn){
+      if(!start){ start = {r, c, btn}; btn.classList.add('sel'); return; }
+      if(start.r === r && start.c === c){ btn.classList.remove('sel'); start = null; return; }
+      const s = start; start = null; s.btn.classList.remove('sel');
+      const dr = r - s.r, dc = c - s.c;
+      if(!(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))){
+        $('fb').className = 'feedback bad'; $('fb').textContent = 'Die letters liggen niet op één lijn.'; return;
+      }
+      const len = Math.max(Math.abs(dr), Math.abs(dc));
+      const sr = Math.sign(dr), sc = Math.sign(dc);
+      const cells = [];
+      for(let k = 0; k <= len; k++) cells.push([s.r + sr*k, s.c + sc*k]);
+      const str = cells.map(([rr, cc]) => grid[rr][cc]).join('');
+      const rev = str.split('').reverse().join('');
+      const hit = placed.find(p => !p.found && (p.w === str || p.w === rev));
+      if(hit){
+        hit.found = true; found++;
+        hit.cells.forEach(([rr, cc]) => els[rr][cc].classList.add('found'));
+        hit.el.classList.add('done');
+        beep(true); status();
+        $('fb').className = 'feedback ok'; $('fb').textContent = 'Goed: ' + hit.w + '!';
+        if(found === placed.length) setTimeout(() => finish(root, g, level, found, placed.length, daily), 800);
+      } else {
+        beep(false); $('fb').className = 'feedback bad'; $('fb').textContent = 'Dat staat niet in de lijst.';
+      }
+    }
+  }
+
+  /* 11. Vier op een rij tegen de computer: drie spellen per ronde. */
+  function playConnect(root, g, level, daily){
+    const R = 6, C = 7, TOTAL = 3;
+    let board, wins = 0, gameNo = 0, over = false, busy = false;
+    const DIRS = [[0,1],[1,0],[1,1],[1,-1]];
+    function newBoard(){ board = Array.from({length:R}, () => Array(C).fill(0)); over = false; busy = false; }
+    function valid(c){ return board[0][c] === 0; }
+    function drop(c, who){ for(let r = R-1; r >= 0; r--){ if(board[r][c] === 0){ board[r][c] = who; return r; } } return -1; }
+    function winnerOf(b){
+      for(let r = 0; r < R; r++) for(let c = 0; c < C; c++){
+        const v = b[r][c]; if(!v) continue;
+        for(const [dr, dc] of DIRS){
+          let k = 1;
+          while(k < 4){ const rr = r+dr*k, cc = c+dc*k; if(rr < 0 || rr >= R || cc < 0 || cc >= C || b[rr][cc] !== v) break; k++; }
+          if(k === 4) return v;
+        }
+      }
+      return 0;
+    }
+    function full(b){ return b[0].every(x => x !== 0); }
+    function evalBoard(b){
+      let s = 0;
+      for(let r = 0; r < R; r++) for(let c = 0; c < C; c++) for(const [dr, dc] of DIRS){
+        const cells = [];
+        for(let k = 0; k < 4; k++){ const rr = r+dr*k, cc = c+dc*k; if(rr < 0 || rr >= R || cc < 0 || cc >= C) break; cells.push(b[rr][cc]); }
+        if(cells.length !== 4) continue;
+        const m = cells.filter(x => x === 2).length, o = cells.filter(x => x === 1).length;
+        if(m === 4) s += 1000; else if(m === 3 && o === 0) s += 5; else if(m === 2 && o === 0) s += 2; else if(o === 3 && m === 0) s -= 4;
+      }
+      for(let r = 0; r < R; r++) if(b[r][3] === 2) s += 3;
+      return s;
+    }
+    function winningMove(who){
+      for(let c = 0; c < C; c++){
+        if(!valid(c)) continue;
+        const r = drop(c, who); const w = winnerOf(board); board[r][c] = 0;
+        if(w === who) return c;
+      }
+      return -1;
+    }
+    function computerMove(){
+      const valids = [0,1,2,3,4,5,6].filter(valid);
+      if(level === 'makkelijk') return pick(valids);
+      let c = winningMove(2); if(c >= 0) return c;
+      c = winningMove(1); if(c >= 0) return c;
+      if(level === 'normaal'){ const mid = valids.filter(x => x >= 2 && x <= 4); return pick(mid.length ? mid : valids); }
+      let best = -Infinity, bestC = valids[0];
+      for(const cc of valids){
+        const r = drop(cc, 2); const sc = evalBoard(board) + rand(); board[r][cc] = 0;
+        if(sc > best){ best = sc; bestC = cc; }
+      }
+      return bestC;
+    }
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="c4" id="board"></div><div class="feedback" id="fb">Kies een kolom met ▼.</div>'
+      + '<div class="row" style="margin-top:12px"><button class="btn" id="next" hidden>Volgend spel</button></div>';
+    function draw(){
+      const box = $('board'); box.innerHTML = '';
+      for(let c = 0; c < C; c++){
+        const b = document.createElement('button');
+        b.textContent = '▼'; b.setAttribute('aria-label', 'Kolom ' + (c+1));
+        b.disabled = over || busy || !valid(c);
+        b.onclick = () => play(c);
+        box.appendChild(b);
+      }
+      for(let r = 0; r < R; r++) for(let c = 0; c < C; c++){
+        const d = document.createElement('div');
+        d.className = 'disc' + (board[r][c] === 1 ? ' p1' : board[r][c] === 2 ? ' p2' : '');
+        box.appendChild(d);
+      }
+      $('pr').textContent = 'Spel ' + Math.min(gameNo+1, TOTAL) + ' van ' + TOTAL + ' · gewonnen: ' + wins;
+    }
+    function end(msg, won){
+      over = true; gameNo++;
+      if(won) wins++;
+      draw();
+      $('fb').className = 'feedback ' + (won === true ? 'ok' : won === false ? 'bad' : '');
+      $('fb').textContent = msg;
+      if(gameNo >= TOTAL){ setTimeout(() => finish(root, g, level, wins, TOTAL, daily), 1000); }
+      else {
+        $('next').hidden = false;
+        $('next').onclick = () => { $('next').hidden = true; newBoard(); $('fb').textContent = 'Kies een kolom met ▼.'; draw(); };
+      }
+    }
+    function play(c){
+      if(over || busy || !valid(c)) return;
+      drop(c, 1); beep(true);
+      if(winnerOf(board) === 1){ return end('Je wint dit spel!', true); }
+      if(full(board)){ return end('Gelijkspel.', null); }
+      busy = true; draw();
+      $('fb').textContent = 'De computer denkt na…';
+      setTimeout(() => {
+        const cc = computerMove(); drop(cc, 2); busy = false; beep(false);
+        if(winnerOf(board) === 2){ return end('De computer wint dit spel.', false); }
+        if(full(board)){ return end('Gelijkspel.', null); }
+        $('fb').className = 'feedback'; $('fb').textContent = 'Jouw beurt.'; draw();
+      }, 450);
+    }
+    newBoard(); draw();
+  }
+
+  /* 12. Mini-sudoku: 4 bij 4, vul de lege vakjes met 1 tot en met 4. */
+  function playSudoku(root, g, level, daily){
+    const blanksN = { makkelijk:6, normaal:8, moeilijk:10 }[level];
+    const perm = shuffle([1,2,3,4]);
+    const solved = [0,1,2,3].map(r => [0,1,2,3].map(c => perm[(r*2 + Math.floor(r/2) + c) % 4]));
+    const blank = new Set(shuffle([...Array(16).keys()]).slice(0, blanksN));
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div><div class="sgrid" id="sg"></div>'
+      + '<div class="numpad" id="np"></div><div class="feedback" id="fb">Kies een leeg vakje en tik daarna een getal.</div>';
+    const cells = [];
+    for(let i = 0; i < 16; i++){
+      const b = document.createElement('button');
+      const r = Math.floor(i/4), c = i % 4;
+      if(blank.has(i)){ b.className = 'sc'; b.onclick = () => { sel = i; draw(); }; }
+      else { b.className = 'sc given'; b.textContent = solved[r][c]; }
+      $('sg').appendChild(b); cells.push(b);
+    }
+    [1,2,3,4].forEach(n => {
+      const b = document.createElement('button'); b.textContent = n;
+      b.onclick = () => put(n);
+      $('np').appendChild(b);
+    });
+    let sel = -1, filled = 0, mistakes = 0, done = false;
+    function draw(){
+      cells.forEach((b, i) => b.classList.toggle('sel', i === sel));
+      $('pr').textContent = 'Nog te vullen: ' + (blanksN - filled) + ' · fouten: ' + mistakes;
+    }
+    function put(n){
+      if(done || sel < 0 || !blank.has(sel) || cells[sel].textContent) return;
+      const r = Math.floor(sel/4), c = sel % 4;
+      if(solved[r][c] === n){
+        cells[sel].textContent = n; cells[sel].classList.add('ok'); cells[sel].classList.remove('sel');
+        filled++; sel = -1; beep(true);
+        $('fb').className = 'feedback ok'; $('fb').textContent = 'Goed!';
+        if(filled === blanksN){
+          done = true;
+          setTimeout(() => finish(root, g, level, Math.max(0, blanksN - mistakes), blanksN, daily), 800);
+        }
+      } else {
+        mistakes++; beep(false);
+        $('fb').className = 'feedback bad'; $('fb').textContent = 'Dat getal past hier niet.';
+      }
+      draw();
+    }
+    draw();
+  }
+
+  /* 13. Vul de spreuk aan: een woord ontbreekt in een bekende zegswijze. */
+  const SPREUKEN = [
+    { s:'Een ___ in de hand is beter dan tien in de lucht.', a:'vogel', d:['duif','mus'] },
+    { s:'Beter laat dan ___.', a:'nooit', d:['vroeg','zelden'] },
+    { s:'Wie zaait, zal ___.', a:'oogsten', d:['weiden','vissen'] },
+    { s:'Als de kat van huis is, dansen de ___.', a:'muizen', d:['honden','kippen'] },
+    { s:'Een goed begin is het ___ van het werk.', a:'halve', d:['hele','eerste'] },
+    { s:'Ieder voor ___.', a:'zich', d:['ons','hem'] },
+    { s:'Te veel koks bederven de ___.', a:'bouillon', d:['soep','saus'] },
+    { s:'Rome is niet op één ___ gebouwd.', a:'dag', d:['week','nacht'] }
+  ];
+  function playProverbs(root, g, level, daily){
+    const items = shuffle(SPREUKEN).slice(0, 6);
+    let i = 0, score = 0;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div><div class="zin" id="zin"></div>'
+      + '<div class="grid g2" id="opts"></div><div class="feedback" id="fb"></div>';
+    function show(){
+      const it = items[i];
+      $('pr').textContent = 'Zin ' + (i+1) + ' van ' + items.length + ' · goed: ' + score;
+      $('zin').textContent = it.s;
+      const opts = shuffle(level === 'makkelijk' ? [it.a, it.d[0]] : [it.a, ...it.d]);
+      $('fb').className = 'feedback'; $('fb').textContent = '';
+      const box = $('opts'); box.innerHTML = '';
+      opts.forEach(w => {
+        const b = document.createElement('button');
+        b.className = 'btn ghost opt'; b.textContent = w;
+        b.onclick = () => answer(w === it.a, it, box);
+        box.appendChild(b);
+      });
+    }
+    function answer(correct, it, box){
+      [...box.children].forEach(b => b.disabled = true);
+      if(correct){ score++; beep(true); $('fb').className = 'feedback ok'; $('fb').textContent = 'Goed!'; }
+      else { beep(false); $('fb').className = 'feedback bad'; $('fb').textContent = 'Het juiste woord is ' + it.a + '.'; }
+      i++;
+      setTimeout(() => { if(i >= items.length) finish(root, g, level, score, items.length, daily); else show(); }, 1200);
+    }
+    show();
+  }
+
+  /* 14. Letterjacht: uit een reeks letters maak je zoveel mogelijk woorden binnen de tijd. */
+  const DICT = ['huis','boom','zon','fiets','appel','tafel','melk','wolk','stoel','bloem','regen','brood','vogel','hond','kat',
+    'school','kikker','konijn','wortel','paraplu','verhaal','voetbal','kasteel','zonnebloem','televisie','krokodil','vliegtuig',
+    'bibliotheek','aardappel','ziekenhuis','schoolplein','tandarts','rol','lint','nest','pen','tand','sok','boot','roos','lamp',
+    'kaas','ring','hek','net','mes','bal','reis','lied','vuur','glas','mond','oor','oog','arm','been','haan','zeep','sneeuw',
+    'ster','maan','wind','vis','ijs','raam','deur','tuin','straat','kerk','boek','steen','water','licht','lepel','koffie','muis',
+    'paard','stal','slang','kaart','trein','bus','auto','tent','zand','berg','meer','dorp','stad','park','plein','veld','bos',
+    'toren','lade','klok','rat','ton','ei','ui','om','ram','mot','tor','ver','lot','rood','groen','blauw','geel','laat','vroeg'];
+  function playLetterHunt(root, g, level, daily){
+    const secs = { makkelijk:90, normaal:60, moeilijk:45 }[level];
+    const cands = WORDS.filter(w => /^[a-z]+$/.test(w) && w.length >= 7);
+    const base = pick(cands);
+    const bag = {};
+    for(const ch of base) bag[ch] = (bag[ch] || 0) + 1;
+    const formable = w => { const cnt = {...bag}; for(const ch of w){ if(!cnt[ch]) return false; cnt[ch]--; } return true; };
+    const used = new Set(); let points = 0, left = secs, ended = false;
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div>'
+      + '<div class="word" id="lt"></div>'
+      + '<div class="row"><input class="answer" id="ans" autocomplete="off" autocapitalize="none" aria-label="Jouw woord"><button class="btn" id="ok">Ok</button></div>'
+      + '<div class="feedback" id="fb"></div><div class="wlist" id="found"></div>';
+    $('lt').textContent = shuffle(base.split('')).join(' ');
+    function tick(){ $('pr').textContent = 'Nog ' + left + ' s · punten: ' + points; }
+    function submit(){
+      if(ended) return;
+      const w = $('ans').value.trim().toLowerCase(); $('ans').value = '';
+      if(!w) return;
+      if(used.has(w)){ $('fb').className = 'feedback bad'; $('fb').textContent = 'Die had je al.'; return; }
+      if(!DICT.includes(w) || !formable(w)){ beep(false); $('fb').className = 'feedback bad'; $('fb').textContent = 'Dat woord kan ik niet maken met deze letters.'; return; }
+      used.add(w); points += w.length; beep(true);
+      $('fb').className = 'feedback ok'; $('fb').textContent = 'Goed: ' + w + ' (+' + w.length + ')';
+      const s = document.createElement('span'); s.textContent = w; $('found').appendChild(s);
+      tick();
+    }
+    $('ok').onclick = submit;
+    $('ans').addEventListener('keydown', e => { if(e.key === 'Enter') submit(); });
+    const iv = setInterval(() => {
+      if(!root.isConnected){ clearInterval(iv); return; }
+      left--; tick();
+      if(left <= 0){ clearInterval(iv); ended = true; $('ans').disabled = true; finish(root, g, level, points, null, daily); }
+    }, 1000);
+    tick(); $('ans').focus();
+  }
+
+  /* 15. Tijdaanval: zestig seconden, zoveel mogelijk goede sommen. */
+  function playSpeed(root, g, level, daily){
+    let left = 60, score = 0, cur, ended = false;
+    function q(){
+      const mk = (a, b, op) => op === '+' ? { t:a + ' + ' + b, a:a + b } : op === '−' ? { t:a + ' − ' + b, a:a - b } : { t:a + ' × ' + b, a:a * b };
+      if(level === 'moeilijk'){
+        if(rand() < .33){ return mk(randInt(2,10), randInt(2,10), '×'); }
+        const x = randInt(10,99), y = randInt(10,99);
+        return rand() < .5 ? mk(x, y, '+') : mk(Math.max(x,y), Math.min(x,y), '−');
+      }
+      const hi = level === 'makkelijk' ? 10 : 20;
+      const x = randInt(1, hi), y = randInt(1, hi);
+      return rand() < .5 ? mk(x, y, '+') : mk(Math.max(x,y), Math.min(x,y), '−');
+    }
+    root.innerHTML = '<div class="row"><span class="stat" id="pr"></span></div><div class="big" id="sum"></div>'
+      + '<input class="answer" id="ans" inputmode="numeric" autocomplete="off" aria-label="Jouw antwoord">'
+      + '<div class="row" style="margin-top:12px"><button class="btn" id="ok">Controleer</button></div>'
+      + '<div class="feedback" id="fb"></div>';
+    function tick(){ $('pr').textContent = 'Nog ' + left + ' s · goed: ' + score; }
+    function next(){ cur = q(); $('sum').textContent = cur.t + ' = ?'; $('ans').value = ''; $('ans').focus(); }
+    function submit(){
+      if(ended) return;
+      const v = $('ans').value.trim();
+      if(v === '') return;
+      if(Number(v) === cur.a){ score++; beep(true); $('fb').className = 'feedback ok'; $('fb').textContent = 'Goed!'; }
+      else { beep(false); $('fb').className = 'feedback bad'; $('fb').textContent = 'Het was ' + cur.a + '.'; }
+      next(); tick();
+    }
+    $('ok').onclick = submit;
+    $('ans').addEventListener('keydown', e => { if(e.key === 'Enter') submit(); });
+    const iv = setInterval(() => {
+      if(!root.isConnected){ clearInterval(iv); return; }
+      left--; tick();
+      if(left <= 0){ clearInterval(iv); ended = true; $('ans').disabled = true; finish(root, g, level, score, null, daily); }
+    }, 1000);
+    next(); tick();
   }
 
   renderMenu();
