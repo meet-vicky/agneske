@@ -250,12 +250,34 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
 
   /* boek-toegang: zes spelletjes zijn gratis; de boekcode maakt alles drie maanden vrij */
   const FREE_IDS = ['geheugen','woorden','rekenen','patroon','kleuren','orientatie'];
-  const BOOK = { code: 'sneeuw', days: 90 };
-  function unlocked(){ const u = store().unlock; return !!(u && Date.now() < u.until); }
+  /* boeken per seizoen. Een boek werkt een maand voor het seizoen begint tot twee weken na het einde.
+     win = [begin, einde] als maand*100+dag, zodat je over het jaar heen kunt rekenen. */
+  const SEASONS = [
+    { name:'Wintertijd', months:'november tot januari', m:[10,11,0], win:[1001, 214],  code:'sneeuw' },
+    { name:'Lentetijd',  months:'februari tot april',   m:[1,2,3],   win:[101, 514],  code:'' },
+    { name:'Zomertijd',  months:'mei tot juli',         m:[4,5,6],   win:[401, 814],  code:'' },
+    { name:'Herfsttijd', months:'augustus tot oktober', m:[7,8,9],   win:[701, 1114], code:'' }
+  ];
+  /* koopLinks: pas de eerste aan zodra je boekpagina klaar is */
+  const BUY_LINKS = [
+    { label:'Koop bij de auteur (altijd voordeliger)', url:'https://www.atelier-mystique.be/breinbreker' },
+    { label:'Koop op Amazon', url:'https://www.amazon.com.be/dp/B0HM18PZJ9' }
+  ];
+  function currentBook(){ const mo = new Date().getMonth(); return SEASONS.find(b => b.m.includes(mo)); }
+  function activeBooks(){
+    const now = new Date(), k = (now.getMonth() + 1) * 100 + now.getDate();
+    return SEASONS.filter(b => { const [s, e] = b.win; return s > e ? (k >= s || k <= e) : (k >= s && k <= e); });
+  }
+  function unlocked(){
+    const u = store().unlock;
+    return !!(u && Date.now() < u.until && activeBooks().some(b => b.name === u.season));
+  }
   function daysLeft(){ const u = store().unlock; return u ? Math.max(0, Math.ceil((u.until - Date.now()) / 86400000)) : 0; }
   function tryCode(v){
-    if(String(v).trim().toLowerCase() !== BOOK.code) return false;
-    if(!unlocked()){ const d = store(); d.unlock = { until: Date.now() + BOOK.days * 86400000 }; put(d); }
+    const val = String(v).trim().toLowerCase();
+    const b = activeBooks().find(x => x.code && x.code === val);
+    if(!b) return false;
+    if(!unlocked()){ const d = store(); d.unlock = { until: Date.now() + 90 * 86400000, season: b.name }; put(d); }
     return true;
   }
 
@@ -303,7 +325,7 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
         const v = scores[g.id + ':' + l.id];
         return l.name + ': ' + (v == null ? '–' : v);
       });
-      b.querySelector('.best').textContent = locked ? 'Vergrendeld: vul het woord van pagina 46 in' : noScore ? '' : 'Beste score · ' + parts.join(' · ');
+      b.querySelector('.best').textContent = locked ? 'Vergrendeld: heb je het boek ' + currentBook().name + ' ? Vul het woord van pagina 46 in' : noScore ? '' : 'Beste score · ' + parts.join(' · ');
       b.onclick = locked ? () => { $('code').focus(); $('code').scrollIntoView({ behavior:'smooth', block:'center' }); } : () => openGame(g);
       menu.appendChild(b);
     });
@@ -382,13 +404,14 @@ footer{margin-top:28px; color:var(--muted); font-size:.85rem}
 
     // boek-toegang: het woord van pagina 46 ontgrendelt drie maanden
     const up = document.createElement('div'); up.className = 'panel';
-    up.innerHTML = '<h2>Boek Wintertijd</h2><p class="muted" style="margin:0" id="ust"></p>'
+    up.innerHTML = '<img src="' + currentBook().name.toLowerCase() + '.png" alt="Cover van het boek ' + currentBook().name + '" style="width:140px;max-width:40%;float:right;margin:0 0 8px 12px;border-radius:10px" onerror="this.remove()"><h2>Boek ' + currentBook().name + '</h2><p class="muted" style="margin:0" id="ust"></p>'
       + '<div class="row" style="margin-top:10px"><input class="answer" id="code" style="max-width:240px" autocomplete="off" autocapitalize="none" aria-label="Woord van pagina 46" placeholder="woord van pagina 46"><button class="btn" id="unl">Ontgrendel</button></div>'
       + '<div class="feedback" id="ufb"></div>';
     const left = daysLeft();
+    up.querySelector('#ust').insertAdjacentHTML('afterend', '<p style="margin:8px 0 0">' + BUY_LINKS.map(l => '<a href="' + l.url + '" target="_blank" rel="noopener" style="margin-right:14px">' + l.label + '</a>').join('') + '</p>');
     up.querySelector('#ust').textContent = unlocked()
       ? 'Alle spelletjes zijn vrij. Nog ' + left + ' dagen.' + (left <= 14 ? ' Bijna afgelopen: heb je een nieuw boek, vul de nieuwe code in.' : '')
-      : 'Gratis: zes spelletjes. Heb je het boek? Vul het woord van pagina 46 in voor drie maanden alle spelletjes.';
+      : (activeBooks().some(b => b.code) ? 'Gratis: zes spelletjes. Heb je het boek ' + activeBooks().filter(b => b.code).map(b => b.name).join(' of ') + '? Vul het woord van pagina 46 in voor drie maanden alle spelletjes.' : 'Het boek ' + currentBook().name + ' komt binnenkort. Dan vul je hier het woord van pagina 46 in.');
     up.querySelector('#unl').onclick = () => {
       const ufb = up.querySelector('#ufb');
       if(tryCode(up.querySelector('#code').value)){ renderMenu(); }
